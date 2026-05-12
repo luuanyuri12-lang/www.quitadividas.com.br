@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { CAKTO_PRODUCT_PLAN_MAP } from '@/lib/cakto'
+
+function identificarPlano(nomeProduto: string): 'ESSENCIAL' | 'PRO' | 'ELITE' | null {
+  const nome = nomeProduto?.toLowerCase() ?? ''
+  if (nome.includes('elite')) return 'ELITE'
+  if (nome.includes('pro')) return 'PRO'
+  if (nome.includes('essencial')) return 'ESSENCIAL'
+  return null
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,24 +17,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const event = body.event as string
-    const email = body.data?.customer?.email as string
-    const productId = body.data?.product?.id as string
-    const nome = body.data?.customer?.name as string
+    const event: string = body.event ?? ''
+    const email: string = body.data?.customer?.email ?? ''
+    const nomeProduto: string = body.data?.product?.name ?? ''
+    const nome: string = body.data?.customer?.name ?? ''
 
     if (!email) {
       return NextResponse.json({ error: 'Email not found' }, { status: 400 })
     }
 
     if (event === 'purchase_approved' || event === 'subscription_renewed') {
-      const newPlan = CAKTO_PRODUCT_PLAN_MAP[productId]
+      const newPlan = identificarPlano(nomeProduto)
       if (!newPlan) {
         return NextResponse.json({ error: 'Unknown product' }, { status: 400 })
       }
       await prisma.user.upsert({
         where: { email },
         update: { plano: newPlan },
-        create: { email, nome: nome ?? '', plano: newPlan },
+        create: { email, nome, plano: newPlan },
       })
     }
 
