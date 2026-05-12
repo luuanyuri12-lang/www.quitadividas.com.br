@@ -13,7 +13,6 @@ export async function GET() {
 
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email! },
-      select: { id: true, email: true, nome: true, telefone: true, rendaMensal: true, plano: true },
     })
 
     if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -35,15 +34,15 @@ export async function PATCH(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { nome, telefone } = body
+    const { nome, telefone, rendaMensal } = body
 
     const updated = await prisma.user.update({
       where: { email: user.email! },
       data: {
         ...(nome !== undefined && { nome }),
         ...(telefone !== undefined && { telefone }),
+        ...(rendaMensal !== undefined && { rendaMensal }),
       },
-      select: { id: true, email: true, nome: true, telefone: true, rendaMensal: true, plano: true },
     })
 
     return NextResponse.json(updated)
