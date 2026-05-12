@@ -1,29 +1,33 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { prisma } = await import('@/lib/prisma')
 
-  let dbUser = await prisma.user.findUnique({
-    where: { email: user.email! },
-  })
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        email: user.email!,
-        nome: user.user_metadata?.full_name ?? '',
-        plano: 'ESSENCIAL',
-      },
+    let dbUser = await prisma.user.findUnique({
+      where: { email: user.email! },
     })
-  }
 
-  return NextResponse.json(dbUser)
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
+        data: {
+          email: user.email!,
+          nome: user.user_metadata?.full_name ?? '',
+          plano: 'ESSENCIAL',
+        },
+      })
+    }
+
+    return NextResponse.json(dbUser)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
 }

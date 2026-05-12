@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { anthropic, buildSystemPrompt } from '@/lib/anthropic'
-import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
-import { calcularIndiceSaude } from '@/lib/calculos/indiceSaude'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { prisma } = await import('@/lib/prisma')
+    const { anthropic, buildSystemPrompt } = await import('@/lib/anthropic')
+    const { calcularIndiceSaude } = await import('@/lib/calculos/indiceSaude')
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

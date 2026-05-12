@@ -1,43 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { prisma } = await import('@/lib/prisma')
 
-  const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
-  if (!dbUser) return NextResponse.json([])
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const diario = await prisma.diarioProposito.findMany({
-    where: { userId: dbUser.id },
-    orderBy: { createdAt: 'desc' },
-  })
-  return NextResponse.json(diario)
+    const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+    if (!dbUser) return NextResponse.json([])
+
+    const diario = await prisma.diarioProposito.findMany({
+      where: { userId: dbUser.id },
+      orderBy: { createdAt: 'desc' },
+    })
+    return NextResponse.json(diario)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const { createClient } = await import('@/lib/supabase/server')
+    const { prisma } = await import('@/lib/prisma')
 
-  const body = await req.json()
-  const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
-  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const entrada = await prisma.diarioProposito.create({
-    data: {
-      userId: dbUser.id,
-      reflexao: body.reflexao,
-      semana: body.semana,
-    },
-  })
-  return NextResponse.json(entrada)
+    const body = await req.json()
+    const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+    if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    const entrada = await prisma.diarioProposito.create({
+      data: {
+        userId: dbUser.id,
+        reflexao: body.reflexao,
+        semana: body.semana,
+      },
+    })
+    return NextResponse.json(entrada)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
 }
