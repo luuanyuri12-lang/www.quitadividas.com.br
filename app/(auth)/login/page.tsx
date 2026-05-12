@@ -115,9 +115,9 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Não tem conta?{' '}
-          <Link href="/cadastro" className="text-emerald-600 font-semibold hover:underline">
-            Criar conta grátis
+          Acesso liberado após a compra.{' '}
+          <Link href="/" className="text-emerald-600 font-semibold hover:underline">
+            Adquira seu plano em quitadividas.com.br
           </Link>
         </p>
       </div>

@@ -176,12 +176,12 @@ export default function LandingPage() {
             >
               Entrar
             </Link>
-            <Link
-              href="/cadastro"
+            <a
+              href="#planos"
               className="bg-[#1D9E75] hover:bg-[#178a64] text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
             >
               Quero sair das dívidas
-            </Link>
+            </a>
           </div>
         </div>
       </nav>
@@ -205,12 +205,12 @@ export default function LandingPage() {
             os especialistas e a tecnologia para você quitar tudo e nunca mais voltar a se endividar.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/cadastro"
+            <a
+              href="#planos"
               className="bg-[#1D9E75] hover:bg-[#178a64] text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all hover:scale-105 shadow-lg shadow-emerald-200"
             >
               Quero sair das dívidas
-            </Link>
+            </a>
             <a
               href="#planos"
               className="border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-8 py-4 rounded-2xl text-lg transition-colors"
@@ -423,7 +423,7 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {planos.map((plano) => {
-              const url = CAKTO_CHECKOUT_URLS[plano.key] || '/cadastro'
+              const url = CAKTO_CHECKOUT_URLS[plano.key] || '#planos'
               return (
                 <div
                   key={plano.key}
@@ -462,7 +462,7 @@ export default function LandingPage() {
                   </ul>
                   <a
                     href={url}
-                    target={url !== '/cadastro' ? '_blank' : undefined}
+                    target={url !== '#planos' ? '_blank' : undefined}
                     rel="noopener noreferrer"
                     className={`block text-center font-bold py-3.5 rounded-2xl text-sm transition-all ${
                       plano.destaque
@@ -596,12 +596,12 @@ export default function LandingPage() {
           <p className="text-emerald-100 text-lg mb-10">
             Junte-se a quem já escolheu ter um plano real para sair das dívidas.
           </p>
-          <Link
-            href="/cadastro"
+          <a
+            href="#planos"
             className="inline-block bg-white hover:bg-gray-50 text-[#1D9E75] font-bold px-10 py-4 rounded-2xl text-lg transition-all hover:scale-105 shadow-xl"
           >
             Começar agora
-          </Link>
+          </a>
           <p className="text-emerald-200 text-sm mt-5">
             Sem cartão de crédito para começar • 7 dias de garantia
           </p>
@@ -625,7 +625,6 @@ export default function LandingPage() {
               <ul className="space-y-2">
                 {[
                   { label: 'Entrar', href: '/login' },
-                  { label: 'Criar conta', href: '/cadastro' },
                   { label: 'Ver planos', href: '#planos' },
                 ].map((l) => (
                   <li key={l.label}>
