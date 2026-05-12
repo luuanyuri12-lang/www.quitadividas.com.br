@@ -12,6 +12,7 @@ model User {
   id        String            @id @default(cuid())
   email     String            @unique
   nome      String?
+  telefone  String?
   plano     Plano             @default(ESSENCIAL)
   createdAt DateTime          @default(now())
   dividas   Divida[]

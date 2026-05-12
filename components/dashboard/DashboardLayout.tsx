@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import ChatIA from '@/components/dashboard/ChatIA'
+import Topbar from '@/components/dashboard/Topbar'
 import {
   LayoutDashboard,
   Activity,
@@ -17,7 +18,7 @@ import {
   LogOut,
   Lock,
   ChevronRight,
-  TrendingDown,
+  User,
 } from 'lucide-react'
 
 const PAGE_TITLES: Record<string, string> = {
@@ -28,6 +29,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/receita': 'Aumento de Receita',
   '/dashboard/lideranca': 'Liderança',
   '/dashboard/proposito': 'Propósito',
+  '/dashboard/perfil': 'Meu Perfil',
   '/planos': 'Planos e Preços',
 }
 
@@ -45,11 +47,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     async function loadUser() {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) return router.push('/login')
-
       const res = await fetch('/api/usuario')
       if (res.ok) {
         const data = await res.json()
@@ -72,26 +71,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/diagnostico', label: 'Diagnóstico', icon: Activity, locked: false },
     { href: '/dashboard/dividas', label: 'Minhas Dívidas', icon: CreditCard, locked: false },
     { href: '/dashboard/plano', label: 'Plano de Ação', icon: Map, locked: false },
-    {
-      href: '/dashboard/receita',
-      label: 'Aumento de Receita',
-      icon: TrendingUp,
-      locked: plano === 'ESSENCIAL',
-    },
-    {
-      href: '/dashboard/lideranca',
-      label: 'Liderança',
-      icon: Award,
-      locked: plano === 'ESSENCIAL',
-    },
-    {
-      href: '/dashboard/proposito',
-      label: 'Propósito',
-      icon: Heart,
-      locked: plano !== 'ELITE',
-    },
+    { href: '/dashboard/receita', label: 'Aumento de Receita', icon: TrendingUp, locked: plano === 'ESSENCIAL' },
+    { href: '/dashboard/lideranca', label: 'Liderança', icon: Award, locked: plano === 'ESSENCIAL' },
+    { href: '/dashboard/proposito', label: 'Propósito', icon: Heart, locked: plano !== 'ELITE' },
     { href: '/planos', label: 'Planos e Preços', icon: Tag, locked: false },
+    { href: '/dashboard/perfil', label: 'Meu Perfil', icon: User, locked: false },
   ]
+
+  const titulo = PAGE_TITLES[pathname] || 'Dashboard'
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -150,21 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <div className="flex-1 ml-64 flex flex-col">
-        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
-          <h1 className="text-lg font-semibold text-gray-800">
-            {PAGE_TITLES[pathname] || 'Dashboard'}
-          </h1>
-          <button
-            onClick={() => {
-              const btn = document.querySelector<HTMLButtonElement>('.chat-trigger')
-              btn?.click()
-            }}
-            className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-          >
-            Pedir conselho à IA
-          </button>
-        </header>
-
+        <Topbar titulo={titulo} />
         <main className="flex-1 p-6">{children}</main>
       </div>
 
