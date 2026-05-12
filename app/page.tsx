@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { CAKTO_CHECKOUT_URLS } from '@/lib/cakto'
 import {
-  TrendingDown,
   Activity,
   CreditCard,
   Map,

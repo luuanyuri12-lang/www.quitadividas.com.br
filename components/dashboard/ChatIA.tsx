@@ -56,6 +56,7 @@ export default function ChatIA() {
   return (
     <>
       <button
+        data-chat-trigger
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full p-4 shadow-lg z-50 transition-all hover:scale-110"
       >

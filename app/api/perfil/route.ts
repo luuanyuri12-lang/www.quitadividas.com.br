@@ -13,7 +13,7 @@ export async function GET() {
 
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email! },
-      select: { id: true, email: true, nome: true, telefone: true, plano: true },
+      select: { id: true, email: true, nome: true, telefone: true, rendaMensal: true, plano: true },
     })
 
     if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest) {
         ...(nome !== undefined && { nome }),
         ...(telefone !== undefined && { telefone }),
       },
-      select: { id: true, email: true, nome: true, telefone: true, plano: true },
+      select: { id: true, email: true, nome: true, telefone: true, rendaMensal: true, plano: true },
     })
 
     return NextResponse.json(updated)
