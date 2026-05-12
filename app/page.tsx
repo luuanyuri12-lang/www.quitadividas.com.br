@@ -198,7 +198,7 @@ export default function LandingPage() {
             Plataforma de saúde financeira com IA
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
-            Você está menos de 12 meses de ser{' '}
+            Você está a menos de 12 meses de ser{' '}
             <span className="text-[#1D9E75]">livre das dívidas.</span>
           </h1>
           <p className="text-xl sm:text-2xl font-semibold text-gray-800 max-w-2xl mx-auto mb-4 leading-snug">
