@@ -16,11 +16,15 @@ async function main() {
   })
 
   if (error) {
-    console.error('Erro ao criar usuário no Supabase:', error)
-    return
+    if (error.code === 'email_exists') {
+      console.log('Usuário já existe no Supabase — atualizando banco...')
+    } else {
+      console.error('Erro ao criar usuário no Supabase:', error)
+      return
+    }
+  } else {
+    console.log('Usuário criado no Supabase:', data.user?.id)
   }
-
-  console.log('Usuário criado no Supabase:', data.user?.id)
 
   const dbUser = await prisma.user.upsert({
     where: { email: 'luan_yuri12@hotmail.com' },
@@ -33,8 +37,8 @@ async function main() {
     },
   })
 
-  console.log('Usuário criado no banco:', dbUser.id)
-  console.log('Conta master criada com sucesso!')
+  console.log('Usuário no banco:', dbUser.id, '| plano:', dbUser.plano)
+  console.log('Conta master pronta com sucesso!')
 }
 
 main()
