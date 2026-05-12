@@ -19,9 +19,9 @@ export async function POST(req: NextRequest) {
       include: { dividas: true, entradas: true },
     })
 
-    const totalParcelas = dbUser?.dividas.reduce((s: number, d) => s + d.parcela, 0) ?? 0
-    const totalDividas = dbUser?.dividas.reduce((s: number, d) => s + d.valorTotal, 0) ?? 0
-    const rendaMensal = dbUser?.entradas.reduce((s: number, e) => s + e.valor, 0) ?? 0
+    const totalParcelas = dbUser?.dividas.reduce((s: number, d: { parcela: number }) => s + d.parcela, 0) ?? 0
+    const totalDividas = dbUser?.dividas.reduce((s: number, d: { valorTotal: number }) => s + d.valorTotal, 0) ?? 0
+    const rendaMensal = dbUser?.entradas.reduce((s: number, e: { valor: number }) => s + e.valor, 0) ?? 0
     const indiceSaude = calcularIndiceSaude(rendaMensal, totalParcelas)
 
     const message = await anthropic.messages.create({
