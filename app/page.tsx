@@ -167,11 +167,8 @@ export default function LandingPage() {
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-[#1D9E75] rounded-xl p-1.5">
-              <TrendingDown className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">Quita</span>
+          <div className="flex items-center">
+            <img src="/logo.svg" alt="Quita" className="h-9 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -617,11 +614,8 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-[#1D9E75] rounded-xl p-1.5">
-                  <TrendingDown className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">Quita</span>
+              <div className="flex items-center mb-4">
+                <img src="/logo.svg" alt="Quita" className="h-9 w-auto brightness-0 invert" />
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Plataforma de saúde financeira para pessoas físicas e donos de negócio saírem das dívidas de vez.

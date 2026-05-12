@@ -99,10 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full z-40">
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-2 mb-3">
-            <div className="bg-emerald-600 rounded-xl p-1.5">
-              <TrendingDown className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-800">Quita</span>
+            <img src="/logo.svg" alt="Quita" className="h-8 w-auto" />
           </div>
           {badge && (
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${badge.color}`}>
