@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String            @id @default(cuid())
+  email     String            @unique
+  nome      String?
+  plano     Plano             @default(ESSENCIAL)
+  createdAt DateTime          @default(now())
+  dividas   Divida[]
+  entradas  EntradaReceita[]
+  diario    DiarioProposito[]
+}
+
+enum Plano {
+  ESSENCIAL
+  PRO
+  ELITE
+}
+
+model Divida {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  nome           String
+  tipo           String
+  valorTotal     Float
+  parcela        Float
+  taxaMensal     Float
+  mesesRestantes Int
+  prioridade     Prioridade   @default(MEDIA)
+  status         StatusDivida @default(ATIVA)
+  createdAt      DateTime     @default(now())
+}
+
+enum Prioridade {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+enum StatusDivida {
+  ATIVA
+  RENEGOCIADA
+  QUITADA
+}
+
+model EntradaReceita {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  descricao String
+  valor     Float
+  tipo      String
+  createdAt DateTime @default(now())
+}
+
+model DiarioProposito {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  reflexao  String
+  semana    Int
+  createdAt DateTime @default(now())
+}

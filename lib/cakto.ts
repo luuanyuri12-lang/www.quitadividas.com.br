@@ -1,0 +1,11 @@
+export const CAKTO_CHECKOUT_URLS = {
+  ESSENCIAL: process.env.NEXT_PUBLIC_CAKTO_CHECKOUT_ESSENCIAL!,
+  PRO: process.env.NEXT_PUBLIC_CAKTO_CHECKOUT_PRO!,
+  ELITE: process.env.NEXT_PUBLIC_CAKTO_CHECKOUT_ELITE!,
+}
+
+export const CAKTO_PRODUCT_PLAN_MAP: Record<string, 'ESSENCIAL' | 'PRO' | 'ELITE'> = {
+  [process.env.CAKTO_PRODUCT_ID_ESSENCIAL!]: 'ESSENCIAL',
+  [process.env.CAKTO_PRODUCT_ID_PRO!]: 'PRO',
+  [process.env.CAKTO_PRODUCT_ID_ELITE!]: 'ELITE',
+}
