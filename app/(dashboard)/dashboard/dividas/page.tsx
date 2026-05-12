@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X, AlertCircle } from 'lucide-react'
 
 interface Divida {
   id: string
@@ -27,64 +27,103 @@ const prioridadeBadge: Record<string, string> = {
 
 const prioridadeOrder: Record<string, number> = { ALTA: 0, MEDIA: 1, BAIXA: 2 }
 
+const formInicial = {
+  nome: '',
+  tipo: 'Cartão de crédito',
+  valorTotal: '',
+  parcela: '',
+  taxaMensal: '',
+  mesesRestantes: '',
+}
+
 export default function DividasPage() {
   const [dividas, setDividas] = useState<Divida[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [erro, setErro] = useState('')
+  const [form, setForm] = useState(formInicial)
 
-  const [form, setForm] = useState({
-    nome: '',
-    tipo: 'Cartão de crédito',
-    valorTotal: '',
-    parcela: '',
-    taxaMensal: '',
-    mesesRestantes: '',
-  })
-
-  async function load() {
-    const res = await fetch('/api/dividas')
-    const data = await res.json()
-    const sorted = (Array.isArray(data) ? data : []).sort(
-      (a: Divida, b: Divida) =>
-        prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade]
-    )
-    setDividas(sorted)
-    setLoading(false)
+  async function carregarDividas() {
+    console.log('[dividas] carregando dívidas...')
+    try {
+      const res = await fetch('/api/dividas')
+      console.log('[dividas] status GET:', res.status)
+      const data = await res.json()
+      console.log('[dividas] dados recebidos:', data)
+      const sorted = (Array.isArray(data) ? data : []).sort(
+        (a: Divida, b: Divida) =>
+          prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade]
+      )
+      setDividas(sorted)
+    } catch (err) {
+      console.error('[dividas] erro ao carregar:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
-    load()
+    carregarDividas()
   }, [])
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await fetch('/api/dividas', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nome: form.nome,
-        tipo: form.tipo,
-        valorTotal: parseFloat(form.valorTotal),
-        parcela: parseFloat(form.parcela),
-        taxaMensal: parseFloat(form.taxaMensal),
-        mesesRestantes: parseInt(form.mesesRestantes),
-      }),
-    })
-    setForm({ nome: '', tipo: 'Cartão de crédito', valorTotal: '', parcela: '', taxaMensal: '', mesesRestantes: '' })
-    setModalOpen(false)
-    setSaving(false)
-    await load()
+    setErro('')
+
+    const payload = {
+      nome: form.nome,
+      tipo: form.tipo,
+      valorTotal: Number(form.valorTotal),
+      parcela: Number(form.parcela),
+      taxaMensal: Number(form.taxaMensal),
+      mesesRestantes: Number(form.mesesRestantes),
+    }
+
+    console.log('[dividas] enviando POST:', payload)
+
+    try {
+      const response = await fetch('/api/dividas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      console.log('[dividas] status POST:', response.status)
+
+      if (response.ok) {
+        const nova = await response.json()
+        console.log('[dividas] dívida criada:', nova)
+        setForm(formInicial)
+        setModalOpen(false)
+        await carregarDividas()
+      } else {
+        const erroData = await response.json()
+        console.error('[dividas] erro ao salvar:', erroData)
+        setErro('Erro ao salvar dívida. Tente novamente.')
+      }
+    } catch (err) {
+      console.error('[dividas] erro de rede:', err)
+      setErro('Erro de conexão. Verifique sua internet e tente novamente.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleDelete(id: string) {
-    await fetch('/api/dividas', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
-    await load()
+    console.log('[dividas] deletando id:', id)
+    try {
+      const res = await fetch('/api/dividas', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      console.log('[dividas] status DELETE:', res.status)
+      await carregarDividas()
+    } catch (err) {
+      console.error('[dividas] erro ao deletar:', err)
+    }
   }
 
   const tipos = [
@@ -97,7 +136,7 @@ export default function DividasPage() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">{dividas.length} dívida(s) cadastrada(s)</p>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => { setModalOpen(true); setErro('') }}
           className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -156,10 +195,17 @@ export default function DividasPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-gray-800">Nova dívida</h2>
-              <button onClick={() => setModalOpen(false)}>
+              <button onClick={() => { setModalOpen(false); setErro('') }}>
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
+
+            {erro && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 mb-4 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {erro}
+              </div>
+            )}
 
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -188,6 +234,8 @@ export default function DividasPage() {
                   <input
                     required
                     type="number"
+                    min="0"
+                    step="0.01"
                     value={form.valorTotal}
                     onChange={(e) => setForm({ ...form, valorTotal: e.target.value })}
                     placeholder="10000"
@@ -199,6 +247,8 @@ export default function DividasPage() {
                   <input
                     required
                     type="number"
+                    min="0"
+                    step="0.01"
                     value={form.parcela}
                     onChange={(e) => setForm({ ...form, parcela: e.target.value })}
                     placeholder="500"
@@ -210,6 +260,7 @@ export default function DividasPage() {
                   <input
                     required
                     type="number"
+                    min="0"
                     step="0.1"
                     value={form.taxaMensal}
                     onChange={(e) => setForm({ ...form, taxaMensal: e.target.value })}
@@ -222,6 +273,7 @@ export default function DividasPage() {
                   <input
                     required
                     type="number"
+                    min="1"
                     value={form.mesesRestantes}
                     onChange={(e) => setForm({ ...form, mesesRestantes: e.target.value })}
                     placeholder="24"
@@ -233,7 +285,7 @@ export default function DividasPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { setModalOpen(false); setErro('') }}
                   className="flex-1 border border-gray-200 text-gray-600 font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
                 >
                   Cancelar
