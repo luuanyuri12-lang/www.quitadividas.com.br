@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { calcularIndiceSaude } from '@/lib/calculos/indiceSaude'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()

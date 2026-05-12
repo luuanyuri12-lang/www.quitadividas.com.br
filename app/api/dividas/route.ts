@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { calcularPrioridade } from '@/lib/calculos/prioridadeDivida'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const supabase = await createClient()
   const {
