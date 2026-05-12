@@ -81,10 +81,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const titulo = PAGE_TITLES[pathname] || 'Dashboard'
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen transition-colors" style={{ backgroundColor: 'var(--bg-page)' }}>
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full z-40">
-        <div className="p-6 border-b border-gray-100">
+      <aside
+        className="w-64 flex flex-col fixed h-full z-40 transition-colors"
+        style={{
+          backgroundColor: 'var(--bg-sidebar)',
+          borderRight: '1px solid var(--border-color)',
+        }}
+      >
+        <div className="p-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div className="flex items-center gap-2 mb-3">
             <img src="/logo.svg" alt="Quita" className="h-8 w-auto" />
           </div>
@@ -104,26 +110,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                  active ? 'bg-emerald-50 text-emerald-700' : ''
                 }`}
+                style={
+                  active
+                    ? {}
+                    : { color: 'var(--text-secondary)' }
+                }
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1">{item.label}</span>
-                {item.locked && <Lock className="w-3 h-3 text-gray-400" />}
+                {item.locked && <Lock className="w-3 h-3" style={{ color: 'var(--text-muted)' }} />}
                 {active && <ChevronRight className="w-3 h-3" />}
               </Link>
             )
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 transition-colors" style={{ borderTop: '1px solid var(--border-color)' }}>
           <div className="mb-3">
-            <p className="text-xs font-semibold text-gray-800 truncate">
+            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
               {user?.nome || 'Usuário'}
             </p>
-            <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
           </div>
           <button
             onClick={handleLogout}

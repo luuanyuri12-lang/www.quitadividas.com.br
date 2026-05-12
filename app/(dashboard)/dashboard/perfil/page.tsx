@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, Shield, Tag, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react'
+import { User, Shield, Tag, CheckCircle, AlertCircle } from 'lucide-react'
 
 const PLAN_BADGE: Record<string, { label: string; color: string }> = {
   ESSENCIAL: { label: 'Essencial', color: 'bg-gray-100 text-gray-700' },
@@ -98,14 +98,7 @@ export default function PerfilPage() {
     }
   }
 
-  async function handleExcluirConta() {
-    const confirmado = window.confirm(
-      'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.'
-    )
-    if (!confirmado) return
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+
 
   const badge = PLAN_BADGE[plano]
 
@@ -252,24 +245,6 @@ export default function PerfilPage() {
         </div>
       </div>
 
-      {/* Danger zone */}
-      <div className="bg-white rounded-2xl p-6 border border-red-100">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-red-50 rounded-xl p-2">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
-          </div>
-          <h2 className="font-semibold text-gray-800">Zona de perigo</h2>
-        </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Excluir sua conta é permanente. Todos os seus dados serão removidos e não poderão ser recuperados.
-        </p>
-        <button
-          onClick={handleExcluirConta}
-          className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors"
-        >
-          Excluir minha conta
-        </button>
-      </div>
 
     </div>
   )

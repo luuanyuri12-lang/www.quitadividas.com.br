@@ -19,15 +19,33 @@ export default function Topbar({ titulo, subtitulo }: { titulo: string; subtitul
   }
 
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+    <header
+      className="px-6 py-4 flex items-center justify-between sticky top-0 z-30 transition-colors"
+      style={{
+        backgroundColor: 'var(--bg-topbar)',
+        borderBottom: '1px solid var(--border-color)',
+        boxShadow: 'var(--shadow)',
+      }}
+    >
       <div>
-        <h1 className="text-lg font-semibold text-gray-800">{titulo}</h1>
-        {subtitulo && <p className="text-xs text-gray-500 mt-0.5">{subtitulo}</p>}
+        <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+          {titulo}
+        </h1>
+        {subtitulo && (
+          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            {subtitulo}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <button
           onClick={alternarTema}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors"
+          style={{
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-secondary)',
+            backgroundColor: 'transparent',
+          }}
           title="Alternar tema"
         >
           {tema === 'light' ? '🌙 Modo escuro' : '☀️ Modo claro'}
