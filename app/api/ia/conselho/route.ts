@@ -7,9 +7,7 @@ import { calcularIndiceSaude } from '@/lib/calculos/indiceSaude'
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { pergunta } = await req.json()
@@ -19,9 +17,18 @@ export async function POST(req: NextRequest) {
       include: { dividas: true, entradas: true },
     })
 
-    const totalParcelas = dbUser?.dividas.reduce((s: number, d: { parcela: number }) => s + d.parcela, 0) ?? 0
-    const totalDividas = dbUser?.dividas.reduce((s: number, d: { valorTotal: number }) => s + d.valorTotal, 0) ?? 0
-    const rendaMensal = dbUser?.entradas.reduce((s: number, e: { valor: number }) => s + e.valor, 0) ?? 0
+    const totalParcelas: number = dbUser?.dividas.reduce(
+      (soma: number, divida: { parcela: number }) => soma + divida.parcela, 0
+    ) ?? 0
+
+    const totalDividas: number = dbUser?.dividas.reduce(
+      (soma: number, divida: { valorTotal: number }) => soma + divida.valorTotal, 0
+    ) ?? 0
+
+    const rendaMensal: number = dbUser?.entradas.reduce(
+      (soma: number, entrada: { valor: number }) => soma + entrada.valor, 0
+    ) ?? 0
+
     const indiceSaude = calcularIndiceSaude(rendaMensal, totalParcelas)
 
     const message = await anthropic.messages.create({
@@ -37,8 +44,7 @@ export async function POST(req: NextRequest) {
       messages: [{ role: 'user', content: pergunta }],
     })
 
-    const resposta =
-      message.content[0].type === 'text' ? message.content[0].text : ''
+    const resposta = message.content[0].type === 'text' ? message.content[0].text : ''
     return NextResponse.json({ resposta })
   } catch (error) {
     console.error('IA error:', error)
