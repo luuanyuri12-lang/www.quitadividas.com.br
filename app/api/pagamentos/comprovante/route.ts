@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(bytes)
 
     const { error } = await supabaseAdmin.storage
-      .from('comprovantes')
+      .from('Comprovantes')
       .upload(fileName, buffer, {
         contentType: file.type,
         upsert: true,
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data: urlData } = supabaseAdmin.storage
-      .from('comprovantes')
+      .from('Comprovantes')
       .getPublicUrl(fileName)
 
     console.log('Upload OK:', urlData.publicUrl)
