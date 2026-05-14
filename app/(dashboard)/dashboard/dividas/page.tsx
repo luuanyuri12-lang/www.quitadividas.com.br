@@ -93,6 +93,7 @@ export default function DividasPage() {
   const [dividaHistorico, setDividaHistorico] = useState<Divida | null>(null)
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
   const [carregandoPagamentos, setCarregandoPagamentos] = useState(false)
+  const [comprovanteVisualizando, setComprovanteVisualizando] = useState<string | null>(null)
 
   async function carregarDividas() {
     try {
@@ -665,43 +666,52 @@ export default function DividasPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {pagamentos.map((p) => (
                   <div key={p.id} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '12px 16px', background: '#f9f9f9', borderRadius: 10,
-                    border: '1px solid #eee'
+                    padding: '14px 16px', background: '#f9f9f9',
+                    borderRadius: 10, border: '1px solid #eee'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: '50%',
-                        background: '#E1F5EE', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', fontSize: 16
-                      }}>
-                        💸
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{
+                          width: 40, height: 40, borderRadius: '50%',
+                          background: '#E1F5EE', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                          flexShrink: 0
+                        }}>
+                          💸
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 600, fontSize: 15, color: '#111' }}>
+                            R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </p>
+                          <p style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                            📅 {new Date(p.data).toLocaleDateString('pt-BR', {
+                              day: '2-digit', month: 'long', year: 'numeric',
+                            })}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ fontWeight: 500, fontSize: 14, color: '#111' }}>
-                          R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                        <p style={{ fontSize: 12, color: '#666' }}>
-                          {new Date(p.data).toLocaleDateString('pt-BR', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                          })}
-                        </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {p.comprovante ? (
+                          <button
+                            onClick={() => setComprovanteVisualizando(p.comprovante)}
+                            style={{
+                              fontSize: 12, color: '#1D9E75', background: '#E1F5EE',
+                              border: '1px solid #1D9E75', borderRadius: 6,
+                              padding: '5px 10px', cursor: 'pointer', fontWeight: 500
+                            }}
+                          >
+                            📎 Ver comprovante
+                          </button>
+                        ) : (
+                          <span style={{
+                            fontSize: 11, color: '#999', padding: '5px 10px',
+                            background: '#f0f0f0', borderRadius: 6
+                          }}>
+                            Sem comprovante
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {p.comprovante && (
-                      <a
-                        href={p.comprovante}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          fontSize: 12, color: '#1D9E75', textDecoration: 'none',
-                          padding: '4px 10px', border: '1px solid #1D9E75',
-                          borderRadius: 6, fontWeight: 500
-                        }}
-                      >
-                        Ver comprovante
-                      </a>
-                    )}
                   </div>
                 ))}
                 <div style={{
@@ -714,6 +724,82 @@ export default function DividasPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visualização Comprovante */}
+      {comprovanteVisualizando && (
+        <div
+          onClick={() => setComprovanteVisualizando(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 100, cursor: 'zoom-out'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: 16, padding: 24,
+              maxWidth: 600, width: '100%', margin: '0 16px',
+              maxHeight: '90vh', overflowY: 'auto', cursor: 'default'
+            }}
+          >
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              alignItems: 'center', marginBottom: 16
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600 }}>Comprovante de Pagamento</h3>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a
+                  href={comprovanteVisualizando}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 12, color: '#1D9E75', textDecoration: 'none',
+                    padding: '6px 12px', border: '1px solid #1D9E75',
+                    borderRadius: 6, fontWeight: 500
+                  }}
+                >
+                  ↗ Abrir em nova aba
+                </a>
+                <button
+                  onClick={() => setComprovanteVisualizando(null)}
+                  style={{
+                    background: '#f5f5f5', border: 'none', borderRadius: 6,
+                    padding: '6px 12px', cursor: 'pointer', fontSize: 14, color: '#555'
+                  }}
+                >
+                  ✕ Fechar
+                </button>
+              </div>
+            </div>
+
+            {comprovanteVisualizando.toLowerCase().endsWith('.pdf') ? (
+              <iframe
+                src={comprovanteVisualizando}
+                style={{ width: '100%', height: 500, border: 'none', borderRadius: 8 }}
+                title="Comprovante PDF"
+              />
+            ) : (
+              <img
+                src={comprovanteVisualizando}
+                alt="Comprovante"
+                style={{
+                  width: '100%', borderRadius: 8,
+                  border: '1px solid #eee', maxHeight: 600,
+                  objectFit: 'contain'
+                }}
+              />
+            )}
+
+            <div style={{
+              marginTop: 16, padding: '10px 14px', background: '#f9f9f9',
+              borderRadius: 8, fontSize: 12, color: '#666', textAlign: 'center'
+            }}>
+              Clique fora do comprovante para fechar
+            </div>
           </div>
         </div>
       )}
