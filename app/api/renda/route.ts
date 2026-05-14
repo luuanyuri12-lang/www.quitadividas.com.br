@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest) {
     await getOrCreateUser(user.email!, user.user_metadata?.full_name)
     const { rendaMensal } = await req.json()
 
-    const dbUser = await prisma.user.update({
+    const dbUser = await (prisma.user as any).update({
       where: { email: user.email! },
       data: { rendaMensal: Number(rendaMensal) },
     })
