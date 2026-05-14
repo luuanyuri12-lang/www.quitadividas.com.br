@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       (soma: number, d: { valorTotal: number }) => soma + d.valorTotal, 0
     ) ?? 0
 
-    const rendaMensal = userComDados?.rendaMensal ?? 0
+    const rendaMensal = (userComDados as any)?.rendaMensal ?? 0
     const indiceSaude = calcularIndiceSaude(rendaMensal, totalParcelas)
 
     const message = await anthropic.messages.create({

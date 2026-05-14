@@ -12,7 +12,7 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
-    return NextResponse.json({ rendaMensal: dbUser.rendaMensal })
+    return NextResponse.json({ rendaMensal: (dbUser as any).rendaMensal })
   } catch (error) {
     console.error('GET renda error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest) {
       data: { rendaMensal: Number(rendaMensal) },
     })
 
-    return NextResponse.json({ rendaMensal: dbUser.rendaMensal })
+    return NextResponse.json({ rendaMensal: (dbUser as any).rendaMensal })
   } catch (error) {
     console.error('PATCH renda error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
