@@ -126,6 +126,8 @@ export default function DashboardPage() {
   const totalFutil        = gastos.filter(g => g.categoria === 'Fútil').reduce((s, g) => s + g.valor, 0)
   const totalGastos       = totalNecessario + totalUtil + totalFutil
   const sobra             = rendaMensal - totalParcelas - totalNecessario - totalUtil
+  const sobraComCortes    = rendaMensal - totalParcelas - totalNecessario
+  const sobraCorteUtil    = rendaMensal - totalParcelas - totalNecessario - totalUtil
   const indiceSaude       = calcularIndiceSaude(rendaMensal, totalParcelas)
   const { label: saudeLabel, cor: saudeCor } = classificarSaude(indiceSaude)
 
@@ -238,6 +240,23 @@ export default function DashboardPage() {
                 ? `✅ Você tem ${fmt(sobra)} disponíveis por mês`
                 : `⚠️ Déficit — você gasta mais do que ganha`}
             </p>
+            {sobra < 0 && (
+              <div style={{
+                marginTop: 12, padding: '14px 16px',
+                background: 'linear-gradient(135deg, #1D9E75, #0F6E56)',
+                borderRadius: 10, cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(29,158,117,0.3)'
+              }} onClick={() => {
+                document.getElementById('classificacao-gastos')?.scrollIntoView({ behavior: 'smooth' })
+              }}>
+                <p style={{ color: 'white', fontWeight: 700, fontSize: 15, marginBottom: 2 }}>
+                  💚 Existe solução! Clique aqui para começar a resolver agora
+                </p>
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12 }}>
+                  Em poucos minutos você vai saber exatamente o que cortar para respirar financeiramente
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Breakdown */}
@@ -292,7 +311,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ─── CLASSIFICAÇÃO DE GASTOS ─── */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100">
+      <div id="classificacao-gastos" className="bg-white rounded-2xl p-6 border border-gray-100">
         <div className="flex items-center gap-3 mb-5">
           <div className="bg-blue-50 rounded-xl p-2"><ReceiptText className="w-5 h-5 text-blue-600" /></div>
           <h2 className="font-semibold text-gray-800">Classificação de Gastos</h2>
@@ -335,6 +354,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Como funciona */}
+        <div style={{
+          background: '#F0FDF8', border: '1px solid #1D9E75',
+          borderRadius: 10, padding: '14px 16px', marginBottom: 16
+        }}>
+          <p style={{ fontWeight: 600, fontSize: 14, color: '#0F6E56', marginBottom: 6 }}>
+            📝 Como funciona?
+          </p>
+          <p style={{ fontSize: 13, color: '#555', lineHeight: 1.6 }}>
+            Adicione seus gastos diários ou semanais e classifique cada um como
+            <strong style={{ color: '#E24B4A' }}> Fútil</strong>,
+            <strong style={{ color: '#BA7517' }}> Útil</strong> ou
+            <strong style={{ color: '#1D9E75' }}> Necessário</strong>.
+            O Quita vai analisar tudo e mostrar o que você pode cortar agora para
+            equilibrar suas finanças.
+          </p>
+        </div>
+
         {/* Formulário */}
         <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <input
@@ -372,6 +409,90 @@ export default function DashboardPage() {
             {adicionando ? 'Adicionando...' : 'Adicionar'}
           </button>
         </div>
+
+        {/* Análise Inteligente */}
+        {gastos.length > 0 && (
+          <div style={{
+            marginTop: 16, padding: '16px', background: '#fff',
+            border: '1px solid #e5e5e5', borderRadius: 12, marginBottom: 16
+          }}>
+            <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: '#111' }}>
+              🧠 Análise do Quita
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {totalFutil > 0 && (
+                <div style={{
+                  padding: '10px 14px', background: '#FFF0F0',
+                  borderRadius: 8, border: '1px solid #FECACA'
+                }}>
+                  <p style={{ fontSize: 13, color: '#A32D2D', fontWeight: 500 }}>
+                    ✂️ Cortando gastos fúteis você libera <strong>R$ {totalFutil.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</strong>
+                  </p>
+                </div>
+              )}
+
+              {totalUtil > 0 && (
+                <div style={{
+                  padding: '10px 14px', background: '#FFFBEB',
+                  borderRadius: 8, border: '1px solid #FDE68A'
+                }}>
+                  <p style={{ fontSize: 13, color: '#854F0B', fontWeight: 500 }}>
+                    💡 Reduzindo gastos úteis você pode economizar mais <strong>R$ {(totalUtil * 0.5).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</strong> (estimativa de 50%)
+                  </p>
+                </div>
+              )}
+
+              {sobraComCortes > 0 ? (
+                <div style={{
+                  padding: '10px 14px', background: '#E1F5EE',
+                  borderRadius: 8, border: '1px solid #1D9E75'
+                }}>
+                  <p style={{ fontSize: 13, color: '#0F6E56', fontWeight: 500 }}>
+                    ✅ Cortando os gastos fúteis você terá <strong>R$ {sobraComCortes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</strong> de sobra!
+                  </p>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '10px 14px', background: '#FFF0F0',
+                  borderRadius: 8, border: '1px solid #FECACA'
+                }}>
+                  <p style={{ fontSize: 13, color: '#A32D2D', fontWeight: 500 }}>
+                    ⚠️ Mesmo cortando todos os gastos fúteis ainda há déficit.
+                    Você precisa de um plano de ação para aumentar sua renda e renegociar dívidas.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {sobraComCortes <= 0 && (
+              <button
+                onClick={() => window.location.href = '/dashboard/plano'}
+                style={{
+                  width: '100%', marginTop: 14, padding: '12px',
+                  background: '#1D9E75', border: 'none', borderRadius: 8,
+                  color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(29,158,117,0.3)'
+                }}
+              >
+                🗺️ Ver meu Plano de Ação completo →
+              </button>
+            )}
+
+            {sobraComCortes > 0 && totalFutil > 0 && (
+              <button
+                onClick={() => window.location.href = '/dashboard/plano'}
+                style={{
+                  width: '100%', marginTop: 14, padding: '12px',
+                  background: '#0F6E56', border: 'none', borderRadius: 8,
+                  color: 'white', fontWeight: 600, fontSize: 13, cursor: 'pointer'
+                }}
+              >
+                📋 Ver Plano de Ação para acelerar ainda mais →
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Resumo por categoria */}
         {totalGastos > 0 && (
