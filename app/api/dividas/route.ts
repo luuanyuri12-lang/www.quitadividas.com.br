@@ -6,22 +6,23 @@ export async function GET() {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const { prisma } = await import('@/lib/prisma')
+    const { getOrCreateUser } = await import('@/lib/getOrCreateUser')
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
-    if (!dbUser) return NextResponse.json([])
+    const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
 
     const dividas = await prisma.divida.findMany({
       where: { userId: dbUser.id },
       orderBy: { createdAt: 'desc' },
     })
+
     return NextResponse.json(dividas)
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    console.error('GET dividas error:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
 
@@ -29,33 +30,33 @@ export async function POST(req: NextRequest) {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const { prisma } = await import('@/lib/prisma')
+    const { getOrCreateUser } = await import('@/lib/getOrCreateUser')
     const { calcularPrioridade } = await import('@/lib/calculos/prioridadeDivida')
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
     const body = await req.json()
-    const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
-    if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    const prioridade = calcularPrioridade(body.taxaMensal)
     const divida = await prisma.divida.create({
       data: {
         userId: dbUser.id,
-        nome: body.nome,
-        tipo: body.tipo,
-        valorTotal: body.valorTotal,
-        parcela: body.parcela,
-        taxaMensal: body.taxaMensal,
-        mesesRestantes: body.mesesRestantes,
-        prioridade,
+        nome: String(body.nome),
+        tipo: String(body.tipo),
+        valorTotal: Number(body.valorTotal),
+        parcela: Number(body.parcela),
+        taxaMensal: Number(body.taxaMensal),
+        mesesRestantes: Number(body.mesesRestantes),
+        prioridade: calcularPrioridade(Number(body.taxaMensal)),
       },
     })
+
     return NextResponse.json(divida)
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    console.error('POST dividas error:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
 
@@ -72,7 +73,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.divida.delete({ where: { id } })
     return NextResponse.json({ deleted: true })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    console.error('DELETE dividas error:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

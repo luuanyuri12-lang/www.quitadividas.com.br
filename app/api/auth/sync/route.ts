@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function POST() {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const { getOrCreateUser } = await import('@/lib/getOrCreateUser')
@@ -16,9 +16,9 @@ export async function GET() {
       user.user_metadata?.full_name
     )
 
-    return NextResponse.json(dbUser)
+    return NextResponse.json({ user: dbUser })
   } catch (error) {
-    console.error('GET usuario error:', error)
+    console.error('Sync error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const { createClient } = await import('@/lib/supabase/server')
-    const { prisma } = await import('@/lib/prisma')
     const { getOrCreateUser } = await import('@/lib/getOrCreateUser')
 
     const supabase = await createClient()
@@ -13,19 +12,14 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
-
-    const entradas = await prisma.entradaReceita.findMany({
-      where: { userId: dbUser.id },
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(entradas)
+    return NextResponse.json({ rendaMensal: dbUser.rendaMensal })
   } catch (error) {
-    console.error('GET receitas error:', error)
+    console.error('GET renda error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const { prisma } = await import('@/lib/prisma')
@@ -35,20 +29,17 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
-    const body = await req.json()
+    await getOrCreateUser(user.email!, user.user_metadata?.full_name)
+    const { rendaMensal } = await req.json()
 
-    const entrada = await prisma.entradaReceita.create({
-      data: {
-        userId: dbUser.id,
-        descricao: body.descricao,
-        valor: Number(body.valor),
-        tipo: body.tipo,
-      },
+    const dbUser = await prisma.user.update({
+      where: { email: user.email! },
+      data: { rendaMensal: Number(rendaMensal) },
     })
-    return NextResponse.json(entrada)
+
+    return NextResponse.json({ rendaMensal: dbUser.rendaMensal })
   } catch (error) {
-    console.error('POST receitas error:', error)
+    console.error('PATCH renda error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

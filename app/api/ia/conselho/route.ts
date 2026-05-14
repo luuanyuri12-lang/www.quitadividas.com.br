@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const { createClient } = await import('@/lib/supabase/server')
     const { prisma } = await import('@/lib/prisma')
+    const { getOrCreateUser } = await import('@/lib/getOrCreateUser')
     const { anthropic, buildSystemPrompt } = await import('@/lib/anthropic')
     const { calcularIndiceSaude } = await import('@/lib/calculos/indiceSaude')
 
@@ -14,24 +15,22 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { pergunta } = await req.json()
+    const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
 
-    const dbUser = await prisma.user.findUnique({
+    const userComDados = await prisma.user.findUnique({
       where: { email: user.email! },
-      include: { dividas: true, entradas: true },
+      include: { dividas: true },
     })
 
-    const totalParcelas: number = dbUser?.dividas.reduce(
-      (soma: number, divida: { parcela: number }) => soma + divida.parcela, 0
+    const totalParcelas = userComDados?.dividas.reduce(
+      (soma: number, d: { parcela: number }) => soma + d.parcela, 0
     ) ?? 0
 
-    const totalDividas: number = dbUser?.dividas.reduce(
-      (soma: number, divida: { valorTotal: number }) => soma + divida.valorTotal, 0
+    const totalDividas = userComDados?.dividas.reduce(
+      (soma: number, d: { valorTotal: number }) => soma + d.valorTotal, 0
     ) ?? 0
 
-    const rendaMensal: number = dbUser?.entradas.reduce(
-      (soma: number, entrada: { valor: number }) => soma + entrada.valor, 0
-    ) ?? 0
-
+    const rendaMensal = userComDados?.rendaMensal ?? 0
     const indiceSaude = calcularIndiceSaude(rendaMensal, totalParcelas)
 
     const message = await anthropic.messages.create({
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
         totalDividas,
         totalParcelas,
         indiceSaude,
-        plano: dbUser?.plano ?? 'ESSENCIAL',
+        plano: dbUser.plano,
       }),
       messages: [{ role: 'user', content: pergunta }],
     })
@@ -51,6 +50,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ resposta })
   } catch (error) {
     console.error('IA error:', error)
-    return NextResponse.json({ error: 'Erro ao consultar IA' }, { status: 500 })
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

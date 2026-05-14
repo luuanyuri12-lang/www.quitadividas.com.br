@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next()
+  }
+
   const response = NextResponse.next()
 
   const supabase = createServerClient(
@@ -21,15 +27,12 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthPage =
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/cadastro')
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/cadastro')
+  const isDashboard = pathname.startsWith('/dashboard')
 
-  if (!user && !isAuthPage) {
+  if (!user && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -41,5 +44,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/planos/:path*', '/login', '/cadastro'],
+  matcher: ['/dashboard/:path*', '/login', '/cadastro'],
 }

@@ -9,13 +9,13 @@ datasource db {
 }
 
 model User {
-  id          String           @id @default(cuid())
-  email       String           @unique
+  id          String            @id @default(cuid())
+  email       String            @unique
   nome        String?
   telefone    String?
-  rendaMensal Float            @default(0)
-  plano       Plano            @default(ESSENCIAL)
-  createdAt   DateTime         @default(now())
+  rendaMensal Float             @default(0)
+  plano       Plano             @default(ESSENCIAL)
+  createdAt   DateTime          @default(now())
   dividas     Divida[]
   entradas    EntradaReceita[]
   diario      DiarioProposito[]
