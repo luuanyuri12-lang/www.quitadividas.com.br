@@ -59,6 +59,15 @@ export default function DividasPage() {
   const [formEdicao, setFormEdicao] = useState(formInicial)
   const [salvando, setSalvando] = useState(false)
 
+  const [modalRenegociacao, setModalRenegociacao] = useState(false)
+  const [dividaRenegociando, setDividaRenegociando] = useState<Divida | null>(null)
+  const [formRenegociacao, setFormRenegociacao] = useState({
+    valorTotal: '',
+    parcela: '',
+    taxaMensal: '',
+    mesesRestantes: '',
+  })
+
   async function carregarDividas() {
     try {
       const res = await fetch('/api/dividas')
@@ -149,17 +158,24 @@ export default function DividasPage() {
     }
   }
 
-  async function alterarStatus(id: string, status: string) {
-    try {
-      await fetch('/api/dividas', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
+  async function mudarStatus(divida: Divida, novoStatus: string) {
+    if (novoStatus === 'RENEGOCIADA') {
+      setDividaRenegociando(divida)
+      setFormRenegociacao({
+        valorTotal: String(divida.valorTotal),
+        parcela: String(divida.parcela),
+        taxaMensal: String(divida.taxaMensal),
+        mesesRestantes: String(divida.mesesRestantes),
       })
-      await carregarDividas()
-    } catch (err) {
-      console.error('[dividas] erro ao alterar status:', err)
+      setModalRenegociacao(true)
+      return
     }
+    await fetch('/api/dividas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: divida.id, status: novoStatus }),
+    })
+    setDividas(prev => prev.map(d => d.id === divida.id ? { ...d, status: novoStatus } : d))
   }
 
   async function handleDelete(id: string) {
@@ -230,7 +246,7 @@ export default function DividasPage() {
                       </span>
                     )}
                     {d.status === 'RENEGOCIADA' && (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
                         Renegociada
                       </span>
                     )}
@@ -266,7 +282,7 @@ export default function DividasPage() {
                 </div>
                 <select
                   value={d.status}
-                  onChange={(e) => alterarStatus(d.id, e.target.value)}
+                  onChange={(e) => mudarStatus(d, e.target.value)}
                   className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                 >
                   <option value="ATIVA">Ativa</option>
@@ -378,6 +394,123 @@ export default function DividasPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Renegociação */}
+      {modalRenegociacao && dividaRenegociando && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: 32,
+            width: '100%', maxWidth: 500, margin: '0 16px'
+          }}>
+            <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>
+              Dívida Renegociada 🤝
+            </h2>
+            <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>
+              Ótimo! Informe os novos valores após a renegociação de <strong>{dividaRenegociando.nome}</strong>:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Novo valor total (R$)
+                </label>
+                <input
+                  type="number"
+                  value={formRenegociacao.valorTotal}
+                  onChange={e => setFormRenegociacao(p => ({ ...p, valorTotal: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, color: '#111' }}
+                />
+                {dividaRenegociando.valorTotal && formRenegociacao.valorTotal && (
+                  <p style={{ fontSize: 11, color: '#1D9E75', marginTop: 4 }}>
+                    💰 Desconto: R$ {(dividaRenegociando.valorTotal - Number(formRenegociacao.valorTotal)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Nova parcela mensal (R$)
+                </label>
+                <input
+                  type="number"
+                  value={formRenegociacao.parcela}
+                  onChange={e => setFormRenegociacao(p => ({ ...p, parcela: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, color: '#111' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Nova taxa de juros (% a.m.)
+                </label>
+                <input
+                  type="number"
+                  value={formRenegociacao.taxaMensal}
+                  onChange={e => setFormRenegociacao(p => ({ ...p, taxaMensal: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, color: '#111' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Novos meses restantes
+                </label>
+                <input
+                  type="number"
+                  value={formRenegociacao.mesesRestantes}
+                  onChange={e => setFormRenegociacao(p => ({ ...p, mesesRestantes: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, color: '#111' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button
+                onClick={() => setModalRenegociacao(false)}
+                style={{
+                  flex: 1, padding: '12px', border: '1px solid #ddd',
+                  borderRadius: 8, background: 'white', cursor: 'pointer',
+                  fontSize: 14, color: '#333'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const response = await fetch('/api/dividas', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: dividaRenegociando.id,
+                      status: 'RENEGOCIADA',
+                      valorTotal: Number(formRenegociacao.valorTotal),
+                      parcela: Number(formRenegociacao.parcela),
+                      taxaMensal: Number(formRenegociacao.taxaMensal),
+                      mesesRestantes: Number(formRenegociacao.mesesRestantes),
+                    })
+                  })
+                  if (response.ok) {
+                    const atualizada = await response.json()
+                    setDividas(prev => prev.map(d => d.id === atualizada.id ? atualizada : d))
+                    setModalRenegociacao(false)
+                    const economia = dividaRenegociando.valorTotal - Number(formRenegociacao.valorTotal)
+                    if (economia > 0) {
+                      alert(`🎉 Parabéns! Você economizou R$ ${economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} com essa renegociação!`)
+                    }
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '12px', border: 'none',
+                  borderRadius: 8, background: '#1D9E75', cursor: 'pointer',
+                  fontSize: 14, color: 'white', fontWeight: 600
+                }}
+              >
+                Confirmar renegociação ✓
+              </button>
+            </div>
           </div>
         </div>
       )}
