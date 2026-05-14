@@ -41,6 +41,17 @@ model Divida {
   prioridade     Prioridade   @default(MEDIA)
   status         StatusDivida @default(ATIVA)
   createdAt      DateTime     @default(now())
+  pagamentos     Pagamento[]
+}
+
+model Pagamento {
+  id          String   @id @default(cuid())
+  dividaId    String
+  divida      Divida   @relation(fields: [dividaId], references: [id], onDelete: Cascade)
+  valor       Float
+  data        DateTime @default(now())
+  comprovante String?
+  createdAt   DateTime @default(now())
 }
 
 enum Prioridade {

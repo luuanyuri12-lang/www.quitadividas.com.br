@@ -15,6 +15,15 @@ interface Divida {
   status: string
 }
 
+interface Pagamento {
+  id: string
+  dividaId: string
+  valor: number
+  data: string
+  comprovante: string | null
+  createdAt: string
+}
+
 function fmt(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -67,6 +76,23 @@ export default function DividasPage() {
     taxaMensal: '',
     mesesRestantes: '',
   })
+
+  const [modalPagamento, setModalPagamento] = useState(false)
+  const [dividaPagando, setDividaPagando] = useState<Divida | null>(null)
+  const [formPagamento, setFormPagamento] = useState({
+    valor: '',
+    data: new Date().toISOString().split('T')[0],
+    comprovante: '',
+    comprovanteFile: null as File | null,
+    comprovantePreview: '',
+  })
+  const [uploadando, setUploadando] = useState(false)
+  const [salvandoPagamento, setSalvandoPagamento] = useState(false)
+
+  const [modalHistorico, setModalHistorico] = useState(false)
+  const [dividaHistorico, setDividaHistorico] = useState<Divida | null>(null)
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
+  const [carregandoPagamentos, setCarregandoPagamentos] = useState(false)
 
   async function carregarDividas() {
     try {
@@ -178,6 +204,21 @@ export default function DividasPage() {
     setDividas(prev => prev.map(d => d.id === divida.id ? { ...d, status: novoStatus } : d))
   }
 
+  async function abrirHistorico(divida: Divida) {
+    setDividaHistorico(divida)
+    setModalHistorico(true)
+    setCarregandoPagamentos(true)
+    try {
+      const res = await fetch('/api/pagamentos?dividaId=' + divida.id)
+      const data = await res.json()
+      setPagamentos(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error)
+    } finally {
+      setCarregandoPagamentos(false)
+    }
+  }
+
   async function handleDelete(id: string) {
     try {
       await fetch('/api/dividas', {
@@ -216,8 +257,9 @@ export default function DividasPage() {
           {dividas.map((d) => (
             <div
               key={d.id}
-              className={`bg-white rounded-2xl p-5 border border-gray-100 flex items-start gap-4 transition-opacity ${d.status === 'QUITADA' ? 'opacity-60' : ''}`}
+              className={`bg-white rounded-2xl p-5 border border-gray-100 transition-opacity ${d.status === 'QUITADA' ? 'opacity-60' : ''}`}
             >
+              <div className="flex items-start gap-4">
               <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                   <p className="text-xs text-gray-400 mb-0.5">Dívida</p>
@@ -289,6 +331,39 @@ export default function DividasPage() {
                   <option value="RENEGOCIADA">Renegociada</option>
                   <option value="QUITADA">Quitada</option>
                 </select>
+              </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid #f0f0f0' }}>
+                <button
+                  onClick={() => {
+                    setDividaPagando(d)
+                    setFormPagamento({
+                      valor: String(d.parcela),
+                      data: new Date().toISOString().split('T')[0],
+                      comprovante: '',
+                      comprovanteFile: null,
+                      comprovantePreview: '',
+                    })
+                    setModalPagamento(true)
+                  }}
+                  style={{
+                    flex: 1, padding: '8px 12px', background: '#E1F5EE',
+                    border: '1px solid #1D9E75', borderRadius: 8, cursor: 'pointer',
+                    fontSize: 13, color: '#0F6E56', fontWeight: 500
+                  }}
+                >
+                  ✓ Paguei a parcela
+                </button>
+                <button
+                  onClick={() => abrirHistorico(d)}
+                  style={{
+                    flex: 1, padding: '8px 12px', background: '#f5f5f5',
+                    border: '1px solid #ddd', borderRadius: 8, cursor: 'pointer',
+                    fontSize: 13, color: '#555'
+                  }}
+                >
+                  📋 Ver histórico
+                </button>
               </div>
             </div>
           ))}
@@ -394,6 +469,251 @@ export default function DividasPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pagamento */}
+      {modalPagamento && dividaPagando && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: 32,
+            width: '100%', maxWidth: 480, margin: '0 16px'
+          }}>
+            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+              Registrar Pagamento 💸
+            </h2>
+            <p style={{ color: '#666', fontSize: 13, marginBottom: 24 }}>
+              {dividaPagando.nome}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Valor pago (R$)
+                </label>
+                <input
+                  type="number"
+                  value={formPagamento.valor}
+                  onChange={e => setFormPagamento(p => ({ ...p, valor: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, color: '#111' }}
+                />
+                <p style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                  Parcela mensal: R$ {dividaPagando.parcela?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Data do pagamento
+                </label>
+                <input
+                  type="date"
+                  value={formPagamento.data}
+                  onChange={e => setFormPagamento(p => ({ ...p, data: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, color: '#111' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
+                  Comprovante (opcional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setFormPagamento(p => ({ ...p, comprovanteFile: file }))
+                    if (file.type.startsWith('image/')) {
+                      const reader = new FileReader()
+                      reader.onload = (ev) => {
+                        setFormPagamento(p => ({ ...p, comprovantePreview: ev.target?.result as string }))
+                      }
+                      reader.readAsDataURL(file)
+                    } else {
+                      setFormPagamento(p => ({ ...p, comprovantePreview: '' }))
+                    }
+                  }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px dashed #ddd', borderRadius: 8, fontSize: 13, color: '#666' }}
+                />
+                {formPagamento.comprovantePreview && (
+                  <img
+                    src={formPagamento.comprovantePreview}
+                    alt="Preview"
+                    style={{ marginTop: 8, maxHeight: 120, borderRadius: 8, border: '1px solid #ddd' }}
+                  />
+                )}
+                {formPagamento.comprovanteFile && !formPagamento.comprovantePreview && (
+                  <p style={{ fontSize: 12, color: '#1D9E75', marginTop: 4 }}>
+                    📄 {formPagamento.comprovanteFile.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button
+                onClick={() => {
+                  setModalPagamento(false)
+                  setFormPagamento({ valor: '', data: new Date().toISOString().split('T')[0], comprovante: '', comprovanteFile: null, comprovantePreview: '' })
+                }}
+                style={{ flex: 1, padding: 12, border: '1px solid #ddd', borderRadius: 8, background: 'white', cursor: 'pointer', fontSize: 14 }}
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={salvandoPagamento}
+                onClick={async () => {
+                  if (!formPagamento.valor) return
+                  setSalvandoPagamento(true)
+                  try {
+                    let comprovanteUrl = ''
+                    if (formPagamento.comprovanteFile) {
+                      setUploadando(true)
+                      const fd = new FormData()
+                      fd.append('file', formPagamento.comprovanteFile)
+                      const uploadRes = await fetch('/api/pagamentos/comprovante', { method: 'POST', body: fd })
+                      if (uploadRes.ok) {
+                        const uploadData = await uploadRes.json()
+                        comprovanteUrl = uploadData.url
+                      }
+                      setUploadando(false)
+                    }
+
+                    const response = await fetch('/api/pagamentos', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        dividaId: dividaPagando.id,
+                        valor: Number(formPagamento.valor),
+                        data: formPagamento.data,
+                        comprovante: comprovanteUrl || null,
+                      }),
+                    })
+
+                    if (response.ok) {
+                      setDividas(prev => prev.map(d => {
+                        if (d.id === dividaPagando.id) {
+                          return {
+                            ...d,
+                            valorTotal: Math.max(0, d.valorTotal - Number(formPagamento.valor)),
+                            mesesRestantes: Math.max(0, d.mesesRestantes - 1),
+                          }
+                        }
+                        return d
+                      }))
+                      setModalPagamento(false)
+                      setFormPagamento({ valor: '', data: new Date().toISOString().split('T')[0], comprovante: '', comprovanteFile: null, comprovantePreview: '' })
+                      alert('✅ Pagamento registrado! Continue assim, você está no caminho certo!')
+                    }
+                  } catch {
+                    alert('Erro ao registrar pagamento')
+                  } finally {
+                    setSalvandoPagamento(false)
+                  }
+                }}
+                style={{
+                  flex: 1, padding: 12, border: 'none', borderRadius: 8,
+                  background: '#1D9E75', cursor: 'pointer', fontSize: 14,
+                  color: 'white', fontWeight: 600,
+                  opacity: salvandoPagamento ? 0.7 : 1
+                }}
+              >
+                {salvandoPagamento ? (uploadando ? 'Enviando comprovante...' : 'Salvando...') : 'Confirmar pagamento ✓'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Histórico */}
+      {modalHistorico && dividaHistorico && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 16, padding: 32,
+            width: '100%', maxWidth: 520, margin: '0 16px',
+            maxHeight: '80vh', overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 600 }}>Histórico de Pagamentos</h2>
+                <p style={{ color: '#666', fontSize: 13, marginTop: 2 }}>{dividaHistorico.nome}</p>
+              </div>
+              <button
+                onClick={() => setModalHistorico(false)}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#666' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {carregandoPagamentos ? (
+              <p style={{ textAlign: 'center', color: '#666', padding: 32 }}>Carregando...</p>
+            ) : pagamentos.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#999', padding: 32 }}>
+                Nenhum pagamento registrado ainda.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pagamentos.map((p) => (
+                  <div key={p.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px', background: '#f9f9f9', borderRadius: 10,
+                    border: '1px solid #eee'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: '#E1F5EE', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: 16
+                      }}>
+                        💸
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: 500, fontSize: 14, color: '#111' }}>
+                          R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p style={{ fontSize: 12, color: '#666' }}>
+                          {new Date(p.data).toLocaleDateString('pt-BR', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    {p.comprovante && (
+                      <a
+                        href={p.comprovante}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: 12, color: '#1D9E75', textDecoration: 'none',
+                          padding: '4px 10px', border: '1px solid #1D9E75',
+                          borderRadius: 6, fontWeight: 500
+                        }}
+                      >
+                        Ver comprovante
+                      </a>
+                    )}
+                  </div>
+                ))}
+                <div style={{
+                  marginTop: 8, padding: '12px 16px', background: '#E1F5EE',
+                  borderRadius: 10, textAlign: 'center'
+                }}>
+                  <p style={{ fontSize: 13, color: '#0F6E56', fontWeight: 500 }}>
+                    Total pago: R$ {pagamentos.reduce((s, p) => s + Number(p.valor), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
