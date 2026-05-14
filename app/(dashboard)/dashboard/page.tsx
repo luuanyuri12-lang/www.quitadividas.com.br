@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { calcularIndiceSaude, classificarSaude } from '@/lib/calculos/indiceSaude'
 import { calcularCustoOportunidade } from '@/lib/calculos/custoOportunidade'
 import {
-  TrendingDown, DollarSign, Activity, CheckCircle,
-  Pencil, X, ReceiptText, Plus, Trash2,
+  TrendingDown, DollarSign, Activity,
+  Pencil, ReceiptText, Plus, Trash2, Wallet,
 } from 'lucide-react'
 
 interface Divida {
@@ -23,9 +23,9 @@ function fmt(v: number) {
 }
 
 const CAT_CORES: Record<string, { bg: string; text: string; label: string }> = {
-  'Fútil':      { bg: 'bg-red-50',    text: 'text-red-700',    label: '🔴 Fútil' },
-  'Útil':       { bg: 'bg-amber-50',  text: 'text-amber-700',  label: '🟡 Útil' },
-  'Necessário': { bg: 'bg-emerald-50',text: 'text-emerald-700',label: '🟢 Necessário' },
+  'Fútil':      { bg: 'bg-red-50',     text: 'text-red-700',     label: '🔴 Fútil' },
+  'Útil':       { bg: 'bg-amber-50',   text: 'text-amber-700',   label: '🟡 Útil' },
+  'Necessário': { bg: 'bg-emerald-50', text: 'text-emerald-700', label: '🟢 Necessário' },
 }
 
 export default function DashboardPage() {
@@ -40,11 +40,9 @@ export default function DashboardPage() {
   const [salvandoRenda, setSalvandoRenda] = useState(false)
   const [rendaSalva, setRendaSalva] = useState(false)
 
-  // gasto form
-  const [gastoDesc, setGastoDesc] = useState('')
-  const [gastoValor, setGastoValor] = useState('')
-  const [gastoCat, setGastoCat] = useState('Fútil')
-  const [adicionandoGasto, setAdicionandoGasto] = useState(false)
+  // gasto form — objeto único
+  const [novoGasto, setNovoGasto] = useState({ descricao: '', valor: '', categoria: 'Fútil' })
+  const [adicionando, setAdicionando] = useState(false)
 
   async function carregarDados() {
     const [d, r, g] = await Promise.all([
@@ -81,22 +79,33 @@ export default function DashboardPage() {
     }
   }
 
-  async function adicionarGasto(e: React.FormEvent) {
-    e.preventDefault()
-    if (!gastoDesc || !gastoValor) return
-    setAdicionandoGasto(true)
+  async function adicionarGasto() {
+    if (!novoGasto.descricao || !novoGasto.valor) return
     try {
-      const res = await fetch('/api/gastos', {
+      setAdicionando(true)
+      const response = await fetch('/api/gastos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descricao: gastoDesc, valor: Number(gastoValor), categoria: gastoCat }),
+        body: JSON.stringify({
+          descricao: novoGasto.descricao,
+          valor: Number(novoGasto.valor),
+          categoria: novoGasto.categoria || 'Fútil',
+        }),
       })
-      if (res.ok) {
-        setGastoDesc(''); setGastoValor(''); setGastoCat('Fútil')
-        await carregarDados()
+      if (!response.ok) {
+        const erro = await response.json()
+        console.error('Erro ao adicionar gasto:', erro)
+        alert('Erro ao adicionar: ' + (erro.error || 'Tente novamente'))
+        return
       }
+      const gastoSalvo = await response.json()
+      setGastos(prev => [...prev, gastoSalvo])
+      setNovoGasto({ descricao: '', valor: '', categoria: 'Fútil' })
+    } catch (error) {
+      console.error('Erro:', error)
+      alert('Erro ao adicionar gasto')
     } finally {
-      setAdicionandoGasto(false)
+      setAdicionando(false)
     }
   }
 
@@ -109,20 +118,25 @@ export default function DashboardPage() {
     setGastos(prev => prev.filter(g => g.id !== id))
   }
 
-  const totalDividas   = dividas.reduce((s, d) => s + d.valorTotal, 0)
-  const totalParcelas  = dividas.reduce((s, d) => s + d.parcela, 0)
-  const totalGastos    = gastos.reduce((s, g) => s + g.valor, 0)
-  const indiceSaude    = calcularIndiceSaude(rendaMensal, totalParcelas)
+  // ─── Cálculos ───
+  const totalDividas      = dividas.reduce((s, d) => s + d.valorTotal, 0)
+  const totalParcelas     = dividas.reduce((s, d) => s + d.parcela, 0)
+  const totalNecessario   = gastos.filter(g => g.categoria === 'Necessário').reduce((s, g) => s + g.valor, 0)
+  const totalUtil         = gastos.filter(g => g.categoria === 'Útil').reduce((s, g) => s + g.valor, 0)
+  const totalFutil        = gastos.filter(g => g.categoria === 'Fútil').reduce((s, g) => s + g.valor, 0)
+  const totalGastos       = totalNecessario + totalUtil + totalFutil
+  const sobra             = rendaMensal - totalParcelas - totalNecessario - totalUtil
+  const indiceSaude       = calcularIndiceSaude(rendaMensal, totalParcelas)
   const { label: saudeLabel, cor: saudeCor } = classificarSaude(indiceSaude)
 
-  const jurosTotal  = dividas.reduce((acc, d) => acc + calcularCustoOportunidade(d.valorTotal, d.taxaMensal, d.mesesRestantes).jurosTotal, 0)
-  const custoTotal  = dividas.reduce((acc, d) => acc + calcularCustoOportunidade(d.valorTotal, d.taxaMensal, d.mesesRestantes).custoTotal, 0)
+  const jurosTotal = dividas.reduce((acc, d) => acc + calcularCustoOportunidade(d.valorTotal, d.taxaMensal, d.mesesRestantes).jurosTotal, 0)
+  const custoTotal = dividas.reduce((acc, d) => acc + calcularCustoOportunidade(d.valorTotal, d.taxaMensal, d.mesesRestantes).custoTotal, 0)
 
   const dividasAtivas = [...dividas.filter(d => d.status === 'ATIVA')]
-    .sort((a, b) => ({ ALTA: 0, MEDIA: 1, BAIXA: 2 }[a.prioridade as 'ALTA'|'MEDIA'|'BAIXA'] ?? 2) - ({ ALTA: 0, MEDIA: 1, BAIXA: 2 }[b.prioridade as 'ALTA'|'MEDIA'|'BAIXA'] ?? 2))
+    .sort((a, b) => ({'ALTA':0,'MEDIA':1,'BAIXA':2}[a.prioridade as 'ALTA'|'MEDIA'|'BAIXA'] ?? 2) - ({'ALTA':0,'MEDIA':1,'BAIXA':2}[b.prioridade as 'ALTA'|'MEDIA'|'BAIXA'] ?? 2))
 
-  const saudeCores: Record<string, string> = { danger: 'text-red-600', warning: 'text-amber-600', ok: 'text-blue-600', success: 'text-emerald-600' }
-  const saudeBarCores: Record<string, string> = { danger: 'bg-red-500', warning: 'bg-amber-500', ok: 'bg-blue-500', success: 'bg-emerald-500' }
+  const saudeCores:    Record<string, string> = { danger: 'text-red-600', warning: 'text-amber-600', ok: 'text-blue-600', success: 'text-emerald-600' }
+  const saudeBarCores: Record<string, string> = { danger: 'bg-red-500',  warning: 'bg-amber-500',  ok: 'bg-blue-500',  success: 'bg-emerald-500' }
 
   const gastosPorCat = ['Fútil', 'Útil', 'Necessário'].map(cat => ({
     cat,
@@ -135,20 +149,18 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
 
-      {/* ─── MÉTRICAS ─── */}
+      {/* ─── MÉTRICAS (4 cards) ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-        {/* Total dívidas */}
         <div className="bg-white rounded-2xl p-5 border border-red-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-red-50 rounded-xl p-2"><TrendingDown className="w-5 h-5 text-red-500" /></div>
             <span className="text-sm text-gray-500">Total em Dívidas</span>
           </div>
           <p className="text-2xl font-bold text-red-600">{fmt(totalDividas)}</p>
-          <p className="text-xs text-gray-400 mt-1">{dividas.length} dívidas ativas</p>
+          <p className="text-xs text-gray-400 mt-1">{dividas.length} dívida(s) ativa(s)</p>
         </div>
 
-        {/* Parcelas mensais */}
         <div className="bg-white rounded-2xl p-5 border border-gray-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-amber-50 rounded-xl p-2"><DollarSign className="w-5 h-5 text-amber-500" /></div>
@@ -190,7 +202,6 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-400 mt-1">clique no lápis para editar</p>
         </div>
 
-        {/* Saúde Financeira */}
         <div className="bg-white rounded-2xl p-5 border border-gray-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-blue-50 rounded-xl p-2"><Activity className="w-5 h-5 text-blue-500" /></div>
@@ -200,6 +211,63 @@ export default function DashboardPage() {
           <p className={`text-xs mt-1 font-medium ${saudeCores[saudeCor]}`}>{saudeLabel}</p>
           <div className="mt-2 h-1.5 bg-gray-100 rounded-full">
             <div className={`h-1.5 rounded-full transition-all ${saudeBarCores[saudeCor]}`} style={{ width: `${indiceSaude}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── SOBRA DA RENDA MENSAL ─── */}
+      <div className={`rounded-2xl p-6 border-2 ${sobra >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`rounded-xl p-2 ${sobra >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+            <Wallet className={`w-5 h-5 ${sobra >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-800">Sobra da Renda Mensal</h2>
+            <p className="text-xs text-gray-500">após pagar dívidas e gastos essenciais</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Valor em destaque */}
+          <div className="flex-shrink-0 text-center lg:text-left">
+            <p className={`text-4xl font-extrabold ${sobra >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+              {fmt(Math.abs(sobra))}
+            </p>
+            <p className={`text-sm font-medium mt-1 ${sobra >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+              {sobra >= 0
+                ? `✅ Você tem ${fmt(sobra)} disponíveis por mês`
+                : `⚠️ Déficit — você gasta mais do que ganha`}
+            </p>
+          </div>
+
+          {/* Breakdown */}
+          <div className="flex-1 space-y-2 text-sm">
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">Renda mensal</span>
+              <span className="font-semibold text-emerald-700">+ {fmt(rendaMensal)}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">(−) Parcelas das dívidas</span>
+              <span className="font-semibold text-red-600">− {fmt(totalParcelas)}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">(−) Gastos necessários</span>
+              <span className="font-semibold text-red-600">− {fmt(totalNecessario)}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-gray-200">
+              <span className="text-gray-600">(−) Gastos úteis</span>
+              <span className="font-semibold text-amber-600">− {fmt(totalUtil)}</span>
+            </div>
+            <div className={`flex justify-between py-1.5 rounded-lg px-2 font-bold ${sobra >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              <span>(=) Sobra da renda</span>
+              <span>{fmt(sobra)}</span>
+            </div>
+            {totalFutil > 0 && (
+              <div className="flex justify-between py-1 text-gray-500 text-xs pt-2">
+                <span>💡 Gastos fúteis identificados (pode cortar):</span>
+                <span className="font-semibold text-red-500">{fmt(totalFutil)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -267,29 +335,28 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Formulário adicionar gasto */}
-        <form onSubmit={adicionarGasto} className="flex flex-col sm:flex-row gap-3 mb-5">
+        {/* Formulário */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-5">
           <input
             type="text"
-            value={gastoDesc}
-            onChange={e => setGastoDesc(e.target.value)}
+            value={novoGasto.descricao}
+            onChange={e => setNovoGasto(prev => ({ ...prev, descricao: e.target.value }))}
             placeholder="Descrição (ex: Uber para trabalho)"
             className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            required
           />
           <input
             type="number"
-            value={gastoValor}
-            onChange={e => setGastoValor(e.target.value)}
+            value={novoGasto.valor}
+            onChange={e => setNovoGasto(prev => ({ ...prev, valor: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && adicionarGasto()}
             placeholder="Valor R$"
             min="0"
             step="0.01"
             className="w-32 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            required
           />
           <select
-            value={gastoCat}
-            onChange={e => setGastoCat(e.target.value)}
+            value={novoGasto.categoria}
+            onChange={e => setNovoGasto(prev => ({ ...prev, categoria: e.target.value }))}
             className="w-36 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option>Fútil</option>
@@ -297,14 +364,14 @@ export default function DashboardPage() {
             <option>Necessário</option>
           </select>
           <button
-            type="submit"
-            disabled={adicionandoGasto}
+            onClick={adicionarGasto}
+            disabled={adicionando || !novoGasto.descricao || !novoGasto.valor}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Adicionar
+            {adicionando ? 'Adicionando...' : 'Adicionar'}
           </button>
-        </form>
+        </div>
 
         {/* Resumo por categoria */}
         {totalGastos > 0 && (
@@ -321,9 +388,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Lista de gastos por categoria */}
+        {/* Lista */}
         {gastos.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-4">Nenhum gasto cadastrado. Adicione seus gastos acima para visualizar a classificação.</p>
+          <p className="text-gray-400 text-sm text-center py-4">Nenhum gasto cadastrado. Adicione seus gastos acima.</p>
         ) : (
           <div className="space-y-4">
             {gastosPorCat.filter(g => g.items.length > 0).map(({ cat, items, total }) => {
