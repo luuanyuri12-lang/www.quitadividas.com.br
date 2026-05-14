@@ -92,16 +92,16 @@ export default function DividasPage() {
 
       console.log('[dividas] status POST:', response.status)
 
+      const data = await response.json()
+
       if (response.ok) {
-        const nova = await response.json()
-        console.log('[dividas] dívida criada:', nova)
+        console.log('[dividas] dívida criada:', data)
         setForm(formInicial)
         setModalOpen(false)
         await carregarDividas()
       } else {
-        const erroData = await response.json()
-        console.error('[dividas] erro ao salvar:', erroData)
-        setErro('Erro ao salvar dívida. Tente novamente.')
+        console.error('[dividas] erro ao salvar:', data)
+        setErro('Erro: ' + (data.error || data.detail || JSON.stringify(data)))
       }
     } catch (err) {
       console.error('[dividas] erro de rede:', err)
