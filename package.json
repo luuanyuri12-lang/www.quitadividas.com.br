@@ -11,13 +11,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^6.19.3",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",
-    "prisma": "^5.22.0",
+    "prisma": "^6.19.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1"
