@@ -88,6 +88,7 @@ export default function DividasPage() {
   })
   const [uploadando, setUploadando] = useState(false)
   const [salvandoPagamento, setSalvandoPagamento] = useState(false)
+  const [quitarDivida, setQuitarDivida] = useState(false)
 
   const [modalHistorico, setModalHistorico] = useState(false)
   const [dividaHistorico, setDividaHistorico] = useState<Divida | null>(null)
@@ -557,10 +558,35 @@ export default function DividasPage() {
               </div>
             </div>
 
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 16px', background: '#FFF9E6',
+              border: '1px solid #F0D060', borderRadius: 8, marginTop: 8
+            }}>
+              <input
+                type="checkbox"
+                id="quitarDivida"
+                checked={quitarDivida}
+                onChange={e => {
+                  setQuitarDivida(e.target.checked)
+                  if (e.target.checked) {
+                    setFormPagamento(p => ({ ...p, valor: String(dividaPagando?.valorTotal || '') }))
+                  } else {
+                    setFormPagamento(p => ({ ...p, valor: String(dividaPagando?.parcela || '') }))
+                  }
+                }}
+                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#1D9E75' }}
+              />
+              <label htmlFor="quitarDivida" style={{ fontSize: 13, color: '#854F0B', cursor: 'pointer', fontWeight: 500 }}>
+                🏆 Quitar dívida completamente (valor total restante: R$ {dividaPagando?.valorTotal?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})
+              </label>
+            </div>
+
             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
               <button
                 onClick={() => {
                   setModalPagamento(false)
+                  setQuitarDivida(false)
                   setFormPagamento({ valor: '', data: new Date().toISOString().split('T')[0], comprovante: '', comprovanteFile: null, comprovantePreview: '' })
                 }}
                 style={{ flex: 1, padding: 12, border: '1px solid #ddd', borderRadius: 8, background: 'white', cursor: 'pointer', fontSize: 14 }}
@@ -582,6 +608,10 @@ export default function DividasPage() {
                       if (uploadRes.ok) {
                         const uploadData = await uploadRes.json()
                         comprovanteUrl = uploadData.url
+                        console.log('Comprovante URL:', comprovanteUrl)
+                      } else {
+                        const uploadErro = await uploadRes.json()
+                        console.error('Erro upload:', uploadErro)
                       }
                       setUploadando(false)
                     }
@@ -594,26 +624,42 @@ export default function DividasPage() {
                         valor: Number(formPagamento.valor),
                         data: formPagamento.data,
                         comprovante: comprovanteUrl || null,
+                        quitar: quitarDivida,
                       }),
                     })
 
                     if (response.ok) {
-                      setDividas(prev => prev.map(d => {
-                        if (d.id === dividaPagando.id) {
-                          return {
-                            ...d,
-                            valorTotal: Math.max(0, d.valorTotal - Number(formPagamento.valor)),
-                            mesesRestantes: Math.max(0, d.mesesRestantes - 1),
+                      if (quitarDivida) {
+                        setDividas(prev => prev.map(d => {
+                          if (d.id === dividaPagando.id) {
+                            return { ...d, valorTotal: 0, mesesRestantes: 0, status: 'QUITADA' }
                           }
-                        }
-                        return d
-                      }))
+                          return d
+                        }))
+                        alert('🏆 PARABÉNS! Dívida quitada! Você é incrível! Continue assim rumo à liberdade financeira!')
+                      } else {
+                        setDividas(prev => prev.map(d => {
+                          if (d.id === dividaPagando.id) {
+                            return {
+                              ...d,
+                              valorTotal: Math.max(0, d.valorTotal - Number(formPagamento.valor)),
+                              mesesRestantes: Math.max(0, d.mesesRestantes - 1),
+                            }
+                          }
+                          return d
+                        }))
+                        alert('✅ Pagamento registrado! Continue assim, você está no caminho certo!')
+                      }
                       setModalPagamento(false)
+                      setQuitarDivida(false)
                       setFormPagamento({ valor: '', data: new Date().toISOString().split('T')[0], comprovante: '', comprovanteFile: null, comprovantePreview: '' })
-                      alert('✅ Pagamento registrado! Continue assim, você está no caminho certo!')
+                    } else {
+                      const erro = await response.json()
+                      alert('Erro: ' + (erro.error || 'Tente novamente'))
                     }
-                  } catch {
+                  } catch (error) {
                     alert('Erro ao registrar pagamento')
+                    console.error(error)
                   } finally {
                     setSalvandoPagamento(false)
                   }
@@ -686,6 +732,7 @@ export default function DividasPage() {
                           <p style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
                             📅 {new Date(p.data).toLocaleDateString('pt-BR', {
                               day: '2-digit', month: 'long', year: 'numeric',
+                              timeZone: 'America/Sao_Paulo',
                             })}
                           </p>
                         </div>

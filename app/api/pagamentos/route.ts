@@ -38,22 +38,37 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
 
+    const dataCorrigida = body.data
+      ? new Date(body.data + 'T12:00:00.000Z')
+      : new Date()
+
     const pagamento = await prisma.pagamento.create({
       data: {
         dividaId: String(body.dividaId),
         valor: Number(body.valor),
-        data: body.data ? new Date(body.data) : new Date(),
-        comprovante: body.comprovante ?? null,
+        data: dataCorrigida,
+        comprovante: body.comprovante || null,
       },
     })
 
-    await prisma.divida.update({
-      where: { id: body.dividaId },
-      data: {
-        valorTotal: { decrement: Number(body.valor) },
-        mesesRestantes: { decrement: 1 },
-      },
-    })
+    if (body.quitar) {
+      await prisma.divida.update({
+        where: { id: body.dividaId },
+        data: {
+          valorTotal: 0,
+          mesesRestantes: 0,
+          status: 'QUITADA',
+        },
+      })
+    } else {
+      await prisma.divida.update({
+        where: { id: body.dividaId },
+        data: {
+          valorTotal: { decrement: Number(body.valor) },
+          mesesRestantes: { decrement: 1 },
+        },
+      })
+    }
 
     return NextResponse.json(pagamento)
   } catch (error) {
