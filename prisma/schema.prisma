@@ -19,6 +19,7 @@ model User {
   dividas     Divida[]
   entradas    EntradaReceita[]
   diario      DiarioProposito[]
+  gastos      Gasto[]
 }
 
 enum Plano {
@@ -70,5 +71,15 @@ model DiarioProposito {
   user      User     @relation(fields: [userId], references: [id])
   reflexao  String
   semana    Int
+  createdAt DateTime @default(now())
+}
+
+model Gasto {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  descricao String
+  valor     Float
+  categoria String
   createdAt DateTime @default(now())
 }
