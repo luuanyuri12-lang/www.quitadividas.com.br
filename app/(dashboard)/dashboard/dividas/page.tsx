@@ -602,18 +602,34 @@ export default function DividasPage() {
                     let comprovanteUrl = ''
                     if (formPagamento.comprovanteFile) {
                       setUploadando(true)
+                      console.log('Iniciando upload do arquivo:', formPagamento.comprovanteFile.name, formPagamento.comprovanteFile.type, formPagamento.comprovanteFile.size)
+
                       const fd = new FormData()
                       fd.append('file', formPagamento.comprovanteFile)
-                      const uploadRes = await fetch('/api/pagamentos/comprovante', { method: 'POST', body: fd })
-                      if (uploadRes.ok) {
+
+                      try {
+                        const uploadRes = await fetch('/api/pagamentos/comprovante', {
+                          method: 'POST',
+                          body: fd,
+                        })
+
+                        console.log('Upload response status:', uploadRes.status)
                         const uploadData = await uploadRes.json()
-                        comprovanteUrl = uploadData.url
-                        console.log('Comprovante URL:', comprovanteUrl)
-                      } else {
-                        const uploadErro = await uploadRes.json()
-                        console.error('Erro upload:', uploadErro)
+                        console.log('Upload response data:', uploadData)
+
+                        if (uploadRes.ok && uploadData.url) {
+                          comprovanteUrl = uploadData.url
+                          console.log('Upload OK, URL:', comprovanteUrl)
+                        } else {
+                          console.error('Upload falhou:', uploadData)
+                          alert('Erro no upload: ' + (uploadData.error || 'Desconhecido'))
+                        }
+                      } catch (uploadError) {
+                        console.error('Erro de rede no upload:', uploadError)
+                        alert('Erro de rede ao enviar comprovante')
+                      } finally {
+                        setUploadando(false)
                       }
-                      setUploadando(false)
                     }
 
                     const response = await fetch('/api/pagamentos', {
