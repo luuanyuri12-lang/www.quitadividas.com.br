@@ -9,81 +9,92 @@ export async function GET() {
     const { getOrCreateUser } = await import('@/lib/getOrCreateUser')
     const { anthropic } = await import('@/lib/anthropic')
 
+    console.log('1. Imports OK')
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    console.log('2. Auth:', user?.email, authError)
+
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    await getOrCreateUser(user.email!, user.user_metadata?.full_name)
+    const dbUser = await getOrCreateUser(user.email!, user.user_metadata?.full_name)
+    console.log('3. DB User:', dbUser.id)
 
-    const userCompleto = await (prisma.user as any).findUnique({
+    const userCompleto = await (prisma as any).user.findUnique({
       where: { email: user.email! },
       include: { dividas: true, gastos: true },
     })
 
-    const totalParcelas    = userCompleto?.dividas?.reduce((s: number, d: any) => s + d.parcela,    0) ?? 0
-    const totalDividas     = userCompleto?.dividas?.reduce((s: number, d: any) => s + d.valorTotal, 0) ?? 0
-    const rendaMensal      = (userCompleto as any)?.rendaMensal ?? 0
-    const gastos: any[]    = userCompleto?.gastos  ?? []
-    const dividas: any[]   = userCompleto?.dividas ?? []
+    console.log('4. User completo:', userCompleto?.dividas?.length, 'dividas,', userCompleto?.gastos?.length, 'gastos')
 
-    const totalFutil      = gastos.filter(g => g.categoria === 'Fútil')     .reduce((s, g) => s + g.valor, 0)
-    const totalUtil       = gastos.filter(g => g.categoria === 'Útil')      .reduce((s, g) => s + g.valor, 0)
-    const totalNecessario = gastos.filter(g => g.categoria === 'Necessário').reduce((s, g) => s + g.valor, 0)
-    const sobra           = rendaMensal - totalParcelas - totalNecessario - totalUtil
-    const indiceSaude     = rendaMensal > 0 ? Math.max(0, Math.round(100 - (totalParcelas / rendaMensal) * 100)) : 0
+    const totalParcelas = userCompleto?.dividas?.reduce((s: number, d: any) => s + d.parcela, 0) ?? 0
+    const totalDividas  = userCompleto?.dividas?.reduce((s: number, d: any) => s + d.valorTotal, 0) ?? 0
+    const rendaMensal   = (userCompleto as any)?.rendaMensal ?? 0
+    const gastos: any[] = userCompleto?.gastos  ?? []
+    const dividas: any[] = userCompleto?.dividas ?? []
+
+    const totalFutil      = gastos.filter((g: any) => g.categoria === 'Fútil')     .reduce((s: number, g: any) => s + g.valor, 0)
+    const totalUtil       = gastos.filter((g: any) => g.categoria === 'Útil')      .reduce((s: number, g: any) => s + g.valor, 0)
+    const totalNecessario = gastos.filter((g: any) => g.categoria === 'Necessário').reduce((s: number, g: any) => s + g.valor, 0)
+    const sobra       = rendaMensal - totalParcelas - totalNecessario - totalUtil
+    const indiceSaude = rendaMensal > 0 ? Math.max(0, Math.round(100 - (totalParcelas / rendaMensal) * 100)) : 0
+
+    console.log('5. Calculando prompt...')
 
     const contextoDividas = dividas.length > 0
-      ? dividas.map(d =>
-          `- ${d.nome} (${d.tipo}): R$ ${d.valorTotal} total, parcela R$ ${d.parcela}/mês, taxa ${d.taxaMensal}% a.m., ${d.mesesRestantes} meses restantes, status: ${d.status}`
+      ? dividas.map((d: any) =>
+          `- ${d.nome} (${d.tipo}): R$ ${d.valorTotal} total, parcela R$ ${d.parcela}/mes, taxa ${d.taxaMensal}% am, ${d.mesesRestantes} meses, status: ${d.status}`
         ).join('\n')
-      : 'Nenhuma dívida cadastrada'
+      : 'Nenhuma divida cadastrada'
 
     const contextoGastos = gastos.length > 0
-      ? gastos.map(g => `- ${g.descricao}: R$ ${g.valor} (${g.categoria})`).join('\n')
+      ? gastos.map((g: any) => `- ${g.descricao}: R$ ${g.valor} (${g.categoria})`).join('\n')
       : 'Nenhum gasto cadastrado ainda'
 
-    const prompt = `Você é um consultor financeiro especialista do Quita. Analise os dados financeiros abaixo e gere um plano de ação PERSONALIZADO com micro tarefas práticas e interativas.
+    console.log('6. Chamando Anthropic...')
 
-DADOS DO USUÁRIO:
+    const prompt = `Voce e um consultor financeiro do Quita. Analise os dados e gere um plano de acao PERSONALIZADO com micro tarefas praticas.
+
+DADOS DO USUARIO:
 - Renda mensal: R$ ${rendaMensal}
-- Total em dívidas: R$ ${totalDividas}
+- Total em dividas: R$ ${totalDividas}
 - Parcelas mensais: R$ ${totalParcelas}
-- Índice de saúde financeira: ${indiceSaude}/100
-- Sobra mensal atual: R$ ${sobra} ${sobra < 0 ? '(DÉFICIT)' : '(POSITIVO)'}
-- Gastos fúteis identificados: R$ ${totalFutil}/mês
-- Gastos úteis: R$ ${totalUtil}/mês
-- Gastos necessários: R$ ${totalNecessario}/mês
+- Indice de saude financeira: ${indiceSaude}/100
+- Sobra mensal atual: R$ ${sobra} ${sobra < 0 ? 'DEFICIT' : 'POSITIVO'}
+- Gastos futeis identificados: R$ ${totalFutil}/mes
+- Gastos uteis: R$ ${totalUtil}/mes
+- Gastos necessarios: R$ ${totalNecessario}/mes
 
-DÍVIDAS:
+DIVIDAS:
 ${contextoDividas}
 
 GASTOS:
 ${contextoGastos}
 
-REGRAS IMPORTANTES:
-1. Gere APENAS tarefas relevantes para ESTE usuário específico
-2. NÃO sugira renegociar dívidas se o usuário não tiver dívidas
-3. NÃO sugira cortar gastos fúteis se não houver gastos fúteis cadastrados
-4. Priorize pelo impacto financeiro real (maior economia primeiro)
-5. Cada tarefa deve ter um impacto em R$ calculado com base nos dados reais
-6. Máximo de 8 tarefas, mínimo de 3
-7. Ordene por prioridade: URGENTE > ALTA > MEDIA > BAIXA
+REGRAS:
+1. Gere APENAS tarefas relevantes para ESTE usuario especifico
+2. NAO sugira renegociar dividas se o usuario nao tiver dividas
+3. NAO sugira cortar gastos se nao houver gastos cadastrados
+4. Priorize pelo impacto financeiro real
+5. Maximo 6 tarefas, minimo 3
+6. Ordene por prioridade: urgente > alta > media > baixa
 
-Responda APENAS com JSON válido neste formato exato, sem markdown, sem explicações:
+Responda APENAS com JSON valido sem markdown:
 {
-  "resumo": "Uma frase motivacional personalizada sobre a situação do usuário",
+  "resumo": "frase motivacional personalizada",
   "indiceSaude": ${indiceSaude},
   "tarefas": [
     {
       "id": "1",
-      "titulo": "Título curto e direto",
-      "descricao": "Descrição clara do que fazer e por quê",
-      "categoria": "dividas|gastos|renda|habitos|negociacao|investimento",
-      "prioridade": "urgente|alta|media|baixa",
+      "titulo": "titulo curto",
+      "descricao": "descricao clara do que fazer",
+      "categoria": "dividas",
+      "prioridade": "alta",
       "impactoMensal": 500,
-      "impactoTexto": "Economiza R$ 500/mês",
-      "prazoSugerido": "Esta semana|Este mês|Em 30 dias|Em 60 dias|Em 90 dias",
-      "comoFazer": "Passo a passo simples de como executar esta tarefa",
+      "impactoTexto": "Economiza R$ 500/mes",
+      "prazoSugerido": "Este mes",
+      "comoFazer": "passo a passo simples",
       "status": "pendente"
     }
   ]
@@ -95,12 +106,23 @@ Responda APENAS com JSON válido neste formato exato, sem markdown, sem explica�
       messages: [{ role: 'user', content: prompt }],
     })
 
+    console.log('7. Anthropic respondeu OK')
+
     const texto = message.content[0].type === 'text' ? message.content[0].text : '{}'
-    const plano = JSON.parse(texto)
+
+    let plano
+    try {
+      plano = JSON.parse(texto)
+    } catch (parseError) {
+      console.error('8. Erro ao fazer parse do JSON:', texto.substring(0, 200))
+      return NextResponse.json({ error: 'Erro ao processar resposta da IA' }, { status: 500 })
+    }
+
+    console.log('9. Plano gerado com', plano?.tarefas?.length, 'tarefas')
 
     return NextResponse.json(plano)
   } catch (error) {
-    console.error('Plano gerar error:', error)
+    console.error('ERRO COMPLETO:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
