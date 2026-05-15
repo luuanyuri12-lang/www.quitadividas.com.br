@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 const CATEGORIA_ICON: Record<string, string> = {
   dividas:      '💳',
@@ -18,6 +19,7 @@ const PRIORIDADE_COR: Record<string, { bg: string; text: string; border: string;
 }
 
 export default function PlanoPage() {
+  const router = useRouter()
   const [plano, setPlano]                   = useState<any>(null)
   const [carregando, setCarregando]         = useState(true)
   const [erro, setErro]                     = useState('')
@@ -216,6 +218,27 @@ export default function PlanoPage() {
                       {tarefa.comoFazer}
                     </p>
                   </div>
+
+                  {tarefa.botaoLink && (
+                    <button
+                      onClick={() => router.push(tarefa.botaoLink)}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: 'linear-gradient(135deg, #1D9E75, #0F6E56)',
+                        border: 'none',
+                        borderRadius: 8,
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        marginBottom: 10,
+                        boxShadow: '0 4px 12px rgba(29,158,117,0.3)',
+                      }}
+                    >
+                      {tarefa.botaoTexto}
+                    </button>
+                  )}
 
                   {/* BOTÕES DE STATUS */}
                   <div style={{ display: 'flex', gap: 8 }}>

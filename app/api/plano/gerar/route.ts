@@ -120,6 +120,8 @@ export async function GET() {
         impactoTexto: `Precisa de R$ ${Math.abs(sobra).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês a mais`,
         prazoSugerido: 'Esta semana',
         comoFazer: '1. Liste suas habilidades (culinária, tecnologia, artesanato, serviços gerais)\n2. Ofereça serviços no iFood, GetNinjas, Workana ou grupos do WhatsApp\n3. Venda itens que não usa mais no OLX ou Marketplace\n4. Considere horas extras no trabalho atual\n5. Meta: gerar pelo menos R$ ' + Math.abs(sobra).toLocaleString('pt-BR') + '/mês extra',
+        botaoLink: '/dashboard/receita',
+        botaoTexto: '📈 Ver estratégias de aumento de receita →',
         status: 'pendente',
       })
     }
