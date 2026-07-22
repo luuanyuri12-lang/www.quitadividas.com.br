@@ -73,7 +73,7 @@ const planos = [
   {
     key: 'PRO' as const,
     nome: 'Pro',
-    preco: 'R$ 47,00',
+    preco: 'R$ 97,00',
     periodo: '/mês',
     desc: 'Para quem quer sair das dívidas e aumentar a renda ao mesmo tempo',
     destaque: true,
@@ -89,7 +89,7 @@ const planos = [
   {
     key: 'ELITE' as const,
     nome: 'Elite',
-    preco: 'R$ 97,00',
+    preco: 'R$ 197,00',
     periodo: '/mês',
     desc: 'Para donos de negócio que querem escalar com propósito',
     destaque: false,

@@ -34,7 +34,7 @@ const planos: PlanoConfig[] = [
   {
     key: 'PRO',
     nome: 'Pro',
-    preco: 'R$ 47,00',
+    preco: 'R$ 97,00',
     descricao: 'Para pessoa física e donos de pequenos negócios que querem crescer',
     destaque: true,
     recursos: [
@@ -49,7 +49,7 @@ const planos: PlanoConfig[] = [
   {
     key: 'ELITE',
     nome: 'Elite',
-    preco: 'R$ 97,00',
+    preco: 'R$ 197,00',
     descricao: 'Para donos de negócio que querem escalar com propósito e liderança',
     destaque: false,
     recursos: [

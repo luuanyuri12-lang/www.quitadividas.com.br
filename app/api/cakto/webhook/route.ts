@@ -10,6 +10,37 @@ function identificarPlano(nomeProduto: string): 'ESSENCIAL' | 'PRO' | 'ELITE' | 
   return null
 }
 
+const COMISSOES: Record<string, number[]> = {
+  ESSENCIAL: [5.97, 1.99, 0.99],
+  PRO: [29.10, 9.70, 4.85],
+  ELITE: [59.10, 19.70, 9.85],
+}
+
+async function creditarComissoes(userId: string, plano: string, prisma: typeof import('@/lib/prisma').prisma) {
+  const valores = COMISSOES[plano] || []
+
+  const nivel1 = await prisma.indicacao.findFirst({ where: { indicadoId: userId } })
+  if (!nivel1) return
+
+  await prisma.comissao.create({
+    data: { userId: nivel1.indicadorId, valor: valores[0] || 0, nivel: 1, origem: userId, status: 'PENDENTE' },
+  })
+
+  const nivel2 = await prisma.indicacao.findFirst({ where: { indicadoId: nivel1.indicadorId } })
+  if (!nivel2) return
+
+  await prisma.comissao.create({
+    data: { userId: nivel2.indicadorId, valor: valores[1] || 0, nivel: 2, origem: userId, status: 'PENDENTE' },
+  })
+
+  const nivel3 = await prisma.indicacao.findFirst({ where: { indicadoId: nivel2.indicadorId } })
+  if (!nivel3) return
+
+  await prisma.comissao.create({
+    data: { userId: nivel3.indicadorId, valor: valores[2] || 0, nivel: 3, origem: userId, status: 'PENDENTE' },
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { prisma } = await import('@/lib/prisma')
@@ -33,11 +64,13 @@ export async function POST(req: NextRequest) {
       if (!newPlan) {
         return NextResponse.json({ error: 'Unknown product' }, { status: 400 })
       }
-      await prisma.user.upsert({
+      const updatedUser = await prisma.user.upsert({
         where: { email },
         update: { plano: newPlan },
         create: { email, nome, plano: newPlan },
       })
+
+      await creditarComissoes(updatedUser.id, newPlan, prisma)
     }
 
     if (

@@ -19,6 +19,8 @@ import {
   Lock,
   ChevronRight,
   User,
+  Users,
+  Building2,
 } from 'lucide-react'
 
 const PAGE_TITLES: Record<string, string> = {
@@ -29,6 +31,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/receita': 'Aumento de Receita',
   '/dashboard/lideranca': 'Liderança',
   '/dashboard/proposito': 'Propósito',
+  '/dashboard/indicacoes': 'Indicações',
+  '/dashboard/empresarial': 'Módulo Empresarial',
   '/dashboard/perfil': 'Meu Perfil',
   '/planos': 'Planos e Preços',
 }
@@ -74,6 +78,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/receita', label: 'Aumento de Receita', icon: TrendingUp, locked: plano === 'ESSENCIAL' },
     { href: '/dashboard/lideranca', label: 'Liderança', icon: Award, locked: plano === 'ESSENCIAL' },
     { href: '/dashboard/proposito', label: 'Propósito', icon: Heart, locked: plano !== 'ELITE' },
+    { href: '/dashboard/indicacoes', label: 'Indicações', icon: Users, locked: false },
+    { href: '/dashboard/empresarial', label: 'Empresarial', icon: Building2, locked: false },
     { href: '/planos', label: 'Planos e Preços', icon: Tag, locked: false },
     { href: '/dashboard/perfil', label: 'Meu Perfil', icon: User, locked: false },
   ]

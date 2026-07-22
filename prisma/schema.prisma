@@ -9,17 +9,24 @@ datasource db {
 }
 
 model User {
-  id          String            @id @default(cuid())
-  email       String            @unique
-  nome        String?
-  telefone    String?
-  rendaMensal Float             @default(0)
-  plano       Plano             @default(ESSENCIAL)
-  createdAt   DateTime          @default(now())
-  dividas     Divida[]
-  entradas    EntradaReceita[]
-  diario      DiarioProposito[]
-  gastos      Gasto[]
+  id                 String            @id @default(cuid())
+  email              String            @unique
+  nome               String?
+  telefone           String?
+  rendaMensal        Float             @default(0)
+  plano              Plano             @default(ESSENCIAL)
+  createdAt          DateTime          @default(now())
+  dividas            Divida[]
+  entradas           EntradaReceita[]
+  diario             DiarioProposito[]
+  gastos             Gasto[]
+  codigoIndicacao    String?             @unique
+  indicadoPorId      String?
+  indicacoesFeitas   Indicacao[]         @relation("Indicacoes")
+  foiIndicadoPor     Indicacao?          @relation("FoiIndicadoPor")
+  comissoes          Comissao[]
+  saques             SaqueRequest[]
+  contasEmpresariais ContaEmpresarial[]
 }
 
 enum Plano {
@@ -93,4 +100,65 @@ model Gasto {
   valor     Float
   categoria String
   createdAt DateTime @default(now())
+}
+
+model Indicacao {
+  id          String   @id @default(cuid())
+  indicadorId String
+  indicador   User     @relation("Indicacoes", fields: [indicadorId], references: [id])
+  indicadoId  String   @unique
+  indicado    User     @relation("FoiIndicadoPor", fields: [indicadoId], references: [id])
+  nivel       Int
+  createdAt   DateTime @default(now())
+}
+
+model Comissao {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  valor     Float
+  nivel     Int
+  origem    String
+  status    StatusComissao @default(PENDENTE)
+  createdAt DateTime       @default(now())
+}
+
+enum StatusComissao {
+  PENDENTE
+  DISPONIVEL
+  SOLICITADO
+  PAGO
+}
+
+model SaqueRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  valor     Float
+  pixKey    String
+  status    String   @default("pendente")
+  createdAt DateTime @default(now())
+}
+
+model ContaEmpresarial {
+  id          String                   @id @default(cuid())
+  userId      String
+  user        User                     @relation(fields: [userId], references: [id])
+  nome        String
+  cnpj        String?
+  setor       String?
+  createdAt   DateTime                 @default(now())
+  lancamentos LancamentoEmpresarial[]
+}
+
+model LancamentoEmpresarial {
+  id        String           @id @default(cuid())
+  contaId   String
+  conta     ContaEmpresarial @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  descricao String
+  valor     Float
+  tipo      String
+  categoria String
+  data      DateTime         @default(now())
+  createdAt DateTime         @default(now())
 }
